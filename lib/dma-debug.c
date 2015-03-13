@@ -1250,7 +1250,7 @@ out:
 	put_hash_bucket(bucket, &flags);
 }
 
-void debug_dma_map_page(struct device *dev, struct page *page, size_t offset,
+void debug_dma_map_pfn(struct device *dev, __pfn_t pfn, size_t offset,
 			size_t size, int direction, dma_addr_t dma_addr,
 			bool map_single)
 {
@@ -1268,7 +1268,7 @@ void debug_dma_map_page(struct device *dev, struct page *page, size_t offset,
 
 	entry->dev       = dev;
 	entry->type      = dma_debug_page;
-	entry->pfn	 = page_to_pfn(page);
+	entry->pfn	 = pfn.pfn;
 	entry->offset	 = offset,
 	entry->dev_addr  = dma_addr;
 	entry->size      = size;

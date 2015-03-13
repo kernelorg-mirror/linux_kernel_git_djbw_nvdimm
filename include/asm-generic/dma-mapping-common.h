@@ -17,9 +17,15 @@ static inline dma_addr_t dma_map_single_attrs(struct device *dev, void *ptr,
 
 	kmemcheck_mark_initialized(ptr, size);
 	BUG_ON(!valid_dma_direction(dir));
+#ifdef CONFIG_HAVE_DMA_PFN
+	addr = ops->map_pfn(dev, page_to_pfn_typed(virt_to_page(ptr)),
+			     (unsigned long)ptr & ~PAGE_MASK, size,
+			     dir, attrs);
+#else
 	addr = ops->map_page(dev, virt_to_page(ptr),
 			     (unsigned long)ptr & ~PAGE_MASK, size,
 			     dir, attrs);
+#endif
 	debug_dma_map_page(dev, virt_to_page(ptr),
 			   (unsigned long)ptr & ~PAGE_MASK, size,
 			   dir, addr, true);
@@ -68,6 +74,29 @@ static inline void dma_unmap_sg_attrs(struct device *dev, struct scatterlist *sg
 		ops->unmap_sg(dev, sg, nents, dir, attrs);
 }
 
+#ifdef CONFIG_HAVE_DMA_PFN
+static inline dma_addr_t dma_map_pfn(struct device *dev, __pfn_t pfn,
+				      size_t offset, size_t size,
+				      enum dma_data_direction dir)
+{
+	struct dma_map_ops *ops = get_dma_ops(dev);
+	dma_addr_t addr;
+
+	BUG_ON(!valid_dma_direction(dir));
+	addr = ops->map_pfn(dev, pfn, offset, size, dir, NULL);
+	debug_dma_map_pfn(dev, pfn, offset, size, dir, addr, false);
+
+	return addr;
+}
+
+static inline dma_addr_t dma_map_page(struct device *dev, struct page *page,
+				      size_t offset, size_t size,
+				      enum dma_data_direction dir)
+{
+	kmemcheck_mark_initialized(page_address(page) + offset, size);
+	return dma_map_pfn(dev, page_to_pfn_typed(page), offset, size, dir);
+}
+#else
 static inline dma_addr_t dma_map_page(struct device *dev, struct page *page,
 				      size_t offset, size_t size,
 				      enum dma_data_direction dir)
@@ -82,6 +111,7 @@ static inline dma_addr_t dma_map_page(struct device *dev, struct page *page,
 
 	return addr;
 }
+#endif /* CONFIG_HAVE_DMA_PFN */
 
 static inline void dma_unmap_page(struct device *dev, dma_addr_t addr,
 				  size_t size, enum dma_data_direction dir)

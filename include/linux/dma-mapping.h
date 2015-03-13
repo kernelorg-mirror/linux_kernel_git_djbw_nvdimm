@@ -26,11 +26,17 @@ struct dma_map_ops {
 
 	int (*get_sgtable)(struct device *dev, struct sg_table *sgt, void *,
 			   dma_addr_t, size_t, struct dma_attrs *attrs);
-
+#ifdef CONFIG_HAVE_DMA_PFN
+	dma_addr_t (*map_pfn)(struct device *dev, __pfn_t pfn,
+			      unsigned long offset, size_t size,
+			      enum dma_data_direction dir,
+			      struct dma_attrs *attrs);
+#else
 	dma_addr_t (*map_page)(struct device *dev, struct page *page,
 			       unsigned long offset, size_t size,
 			       enum dma_data_direction dir,
 			       struct dma_attrs *attrs);
+#endif
 	void (*unmap_page)(struct device *dev, dma_addr_t dma_handle,
 			   size_t size, enum dma_data_direction dir,
 			   struct dma_attrs *attrs);

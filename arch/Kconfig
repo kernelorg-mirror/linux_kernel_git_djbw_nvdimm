@@ -203,6 +203,9 @@ config HAVE_DMA_ATTRS
 config HAVE_DMA_CONTIGUOUS
 	bool
 
+config HAVE_DMA_PFN
+	bool
+
 config GENERIC_SMP_IDLE_THREAD
        bool
 
