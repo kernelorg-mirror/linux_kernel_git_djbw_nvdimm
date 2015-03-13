@@ -992,6 +992,15 @@ static inline __pfn_t page_to_pfn_t(struct page *page)
 	return pfn;
 }
 
+static inline __pfn_t nth_pfn(__pfn_t pfn, unsigned int n)
+{
+	__pfn_t ret;
+
+	ret.val = (__pfn_t_to_pfn(pfn) + n) << PAGE_SHIFT
+		| (pfn.val & PFN_MASK);
+	return ret;
+}
+
 /*
  * Some inline functions in vmstat.h depend on page_zone()
  */
