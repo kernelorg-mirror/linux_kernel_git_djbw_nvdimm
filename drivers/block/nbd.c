@@ -229,10 +229,10 @@ static inline int sock_send_bvec(struct nbd_device *nbd, struct bio_vec *bvec,
 		int flags)
 {
 	int result;
-	void *kaddr = kmap(bvec->bv_page);
+	void *kaddr = kmap(bvec_page(bvec));
 	result = sock_xmit(nbd, 1, kaddr + bvec->bv_offset,
 			   bvec->bv_len, flags);
-	kunmap(bvec->bv_page);
+	kunmap(bvec_page(bvec));
 	return result;
 }
 
@@ -323,10 +323,10 @@ out:
 static inline int sock_recv_bvec(struct nbd_device *nbd, struct bio_vec *bvec)
 {
 	int result;
-	void *kaddr = kmap(bvec->bv_page);
+	void *kaddr = kmap(bvec_page(bvec));
 	result = sock_xmit(nbd, 0, kaddr + bvec->bv_offset, bvec->bv_len,
 			MSG_WAITALL);
-	kunmap(bvec->bv_page);
+	kunmap(bvec_page(bvec));
 	return result;
 }
 

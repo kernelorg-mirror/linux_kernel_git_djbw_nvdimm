@@ -6,8 +6,8 @@
 bool xen_biovec_phys_mergeable(const struct bio_vec *vec1,
 			       const struct bio_vec *vec2)
 {
-	unsigned long mfn1 = pfn_to_mfn(page_to_pfn(vec1->bv_page));
-	unsigned long mfn2 = pfn_to_mfn(page_to_pfn(vec2->bv_page));
+	unsigned long mfn1 = pfn_to_mfn(page_to_pfn(bvec_page(vec1)));
+	unsigned long mfn2 = pfn_to_mfn(page_to_pfn(bvec_page(vec2)));
 
 	return __BIOVEC_PHYS_MERGEABLE(vec1, vec2) &&
 		((mfn1 == mfn2) || ((mfn1+1) == mfn2));

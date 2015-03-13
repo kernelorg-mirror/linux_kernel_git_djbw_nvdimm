@@ -90,7 +90,7 @@ int hib_wait_on_bio_chain(struct bio **bio_chain)
 		struct page *page;
 
 		next_bio = bio->bi_private;
-		page = bio->bi_io_vec[0].bv_page;
+		page = bvec_page(&bio->bi_io_vec[0]);
 		wait_on_page_locked(page);
 		if (!PageUptodate(page) || PageError(page))
 			ret = -EIO;

@@ -22,7 +22,7 @@ static int sync_request(struct page *page, struct block_device *bdev, int rw)
 	bio_init(&bio);
 	bio.bi_max_vecs = 1;
 	bio.bi_io_vec = &bio_vec;
-	bio_vec.bv_page = page;
+	bvec_set_page(&bio_vec, page);
 	bio_vec.bv_len = PAGE_SIZE;
 	bio_vec.bv_offset = 0;
 	bio.bi_vcnt = 1;
@@ -65,8 +65,8 @@ static void writeseg_end_io(struct bio *bio, int err)
 	BUG_ON(err);
 
 	bio_for_each_segment_all(bvec, bio, i) {
-		end_page_writeback(bvec->bv_page);
-		page_cache_release(bvec->bv_page);
+		end_page_writeback(bvec_page(bvec));
+		page_cache_release(bvec_page(bvec));
 	}
 	bio_put(bio);
 	if (atomic_dec_and_test(&super->s_pending_writes))
@@ -110,7 +110,7 @@ static int __bdev_writeseg(struct super_block *sb, u64 ofs, pgoff_t index,
 		}
 		page = find_lock_page(mapping, index + i);
 		BUG_ON(!page);
-		bio->bi_io_vec[i].bv_page = page;
+		bvec_set_page(&bio->bi_io_vec[i], page);
 		bio->bi_io_vec[i].bv_len = PAGE_SIZE;
 		bio->bi_io_vec[i].bv_offset = 0;
 
@@ -200,7 +200,7 @@ static int do_erase(struct super_block *sb, u64 ofs, pgoff_t index,
 			bio = bio_alloc(GFP_NOFS, max_pages);
 			BUG_ON(!bio);
 		}
-		bio->bi_io_vec[i].bv_page = super->s_erase_page;
+		bvec_set_page(&bio->bi_io_vec[i], super->s_erase_page);
 		bio->bi_io_vec[i].bv_len = PAGE_SIZE;
 		bio->bi_io_vec[i].bv_offset = 0;
 	}

@@ -256,9 +256,9 @@ static int do_lo_send_direct_write(struct loop_device *lo,
 		struct bio_vec *bvec, loff_t pos, struct page *page)
 {
 	ssize_t bw = __do_lo_send_write(lo->lo_backing_file,
-			kmap(bvec->bv_page) + bvec->bv_offset,
+			kmap(bvec_page(bvec)) + bvec->bv_offset,
 			bvec->bv_len, pos);
-	kunmap(bvec->bv_page);
+	kunmap(bvec_page(bvec));
 	cond_resched();
 	return bw;
 }
@@ -273,7 +273,7 @@ static int do_lo_send_direct_write(struct loop_device *lo,
 static int do_lo_send_write(struct loop_device *lo, struct bio_vec *bvec,
 		loff_t pos, struct page *page)
 {
-	int ret = lo_do_transfer(lo, WRITE, page, 0, bvec->bv_page,
+	int ret = lo_do_transfer(lo, WRITE, page, 0, bvec_page(bvec),
 			bvec->bv_offset, bvec->bv_len, pos >> 9);
 	if (likely(!ret))
 		return __do_lo_send_write(lo->lo_backing_file,
@@ -376,7 +376,7 @@ do_lo_receive(struct loop_device *lo,
 	ssize_t retval;
 
 	cookie.lo = lo;
-	cookie.page = bvec->bv_page;
+	cookie.page = bvec_page(bvec);
 	cookie.offset = bvec->bv_offset;
 	cookie.bsize = bsize;
 

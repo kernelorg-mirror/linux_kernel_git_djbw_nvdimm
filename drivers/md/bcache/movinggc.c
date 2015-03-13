@@ -48,7 +48,7 @@ static void write_moving_finish(struct closure *cl)
 	int i;
 
 	bio_for_each_segment_all(bv, bio, i)
-		__free_page(bv->bv_page);
+		__free_page(bvec_page(bv));
 
 	if (io->op.replace_collision)
 		trace_bcache_gc_copy_collision(&io->w->key);

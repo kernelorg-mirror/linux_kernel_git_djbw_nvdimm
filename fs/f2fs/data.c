@@ -31,7 +31,7 @@ static void f2fs_read_end_io(struct bio *bio, int err)
 	int i;
 
 	bio_for_each_segment_all(bvec, bio, i) {
-		struct page *page = bvec->bv_page;
+		struct page *page = bvec_page(bvec);
 
 		if (!err) {
 			SetPageUptodate(page);
@@ -51,7 +51,7 @@ static void f2fs_write_end_io(struct bio *bio, int err)
 	int i;
 
 	bio_for_each_segment_all(bvec, bio, i) {
-		struct page *page = bvec->bv_page;
+		struct page *page = bvec_page(bvec);
 
 		if (unlikely(err)) {
 			set_page_dirty(page);

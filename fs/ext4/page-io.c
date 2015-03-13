@@ -68,7 +68,7 @@ static void ext4_finish_bio(struct bio *bio)
 	struct bio_vec *bvec;
 
 	bio_for_each_segment_all(bvec, bio, i) {
-		struct page *page = bvec->bv_page;
+		struct page *page = bvec_page(bvec);
 		struct buffer_head *bh, *head;
 		unsigned bio_start = bvec->bv_offset;
 		unsigned bio_end = bio_start + bvec->bv_len;

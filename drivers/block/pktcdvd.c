@@ -958,12 +958,12 @@ static void pkt_make_local_copy(struct packet_data *pkt, struct bio_vec *bvec)
 	p = 0;
 	offs = 0;
 	for (f = 0; f < pkt->frames; f++) {
-		if (bvec[f].bv_page != pkt->pages[p]) {
-			void *vfrom = kmap_atomic(bvec[f].bv_page) + bvec[f].bv_offset;
+		if (bvec_page(&bvec[f]) != pkt->pages[p]) {
+			void *vfrom = kmap_atomic(bvec_page(&bvec[f])) + bvec[f].bv_offset;
 			void *vto = page_address(pkt->pages[p]) + offs;
 			memcpy(vto, vfrom, CD_FRAMESIZE);
 			kunmap_atomic(vfrom);
-			bvec[f].bv_page = pkt->pages[p];
+			bvec_set_page(&bvec[f], pkt->pages[p]);
 			bvec[f].bv_offset = offs;
 		} else {
 			BUG_ON(bvec[f].bv_offset != offs);
@@ -1307,9 +1307,10 @@ static void pkt_start_write(struct pktcdvd_device *pd, struct packet_data *pkt)
 
 	/* XXX: locking? */
 	for (f = 0; f < pkt->frames; f++) {
-		bvec[f].bv_page = pkt->pages[(f * CD_FRAMESIZE) / PAGE_SIZE];
+		bvec_set_page(&bvec[f],
+			      pkt->pages[(f * CD_FRAMESIZE) / PAGE_SIZE]);
 		bvec[f].bv_offset = (f * CD_FRAMESIZE) % PAGE_SIZE;
-		if (!bio_add_page(pkt->w_bio, bvec[f].bv_page, CD_FRAMESIZE, bvec[f].bv_offset))
+		if (!bio_add_page(pkt->w_bio, bvec_page(&bvec[f]), CD_FRAMESIZE, bvec[f].bv_offset))
 			BUG();
 	}
 	pkt_dbg(2, pd, "vcnt=%d\n", pkt->w_bio->bi_vcnt);

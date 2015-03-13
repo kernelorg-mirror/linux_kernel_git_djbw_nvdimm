@@ -101,7 +101,7 @@ void bio_integrity_free(struct bio *bio)
 	struct bio_set *bs = bio->bi_pool;
 
 	if (bip->bip_flags & BIP_BLOCK_INTEGRITY)
-		kfree(page_address(bip->bip_vec->bv_page) +
+		kfree(page_address(bvec_page(bip->bip_vec)) +
 		      bip->bip_vec->bv_offset);
 
 	if (bs) {
@@ -140,7 +140,7 @@ int bio_integrity_add_page(struct bio *bio, struct page *page,
 
 	iv = bip->bip_vec + bip->bip_vcnt;
 
-	iv->bv_page = page;
+	bvec_set_page(iv, page);
 	iv->bv_len = len;
 	iv->bv_offset = offset;
 	bip->bip_vcnt++;
@@ -220,7 +220,7 @@ static int bio_integrity_process(struct bio *bio,
 	struct bio_vec bv;
 	struct bio_integrity_payload *bip = bio_integrity(bio);
 	unsigned int ret = 0;
-	void *prot_buf = page_address(bip->bip_vec->bv_page) +
+	void *prot_buf = page_address(bvec_page(bip->bip_vec)) +
 		bip->bip_vec->bv_offset;
 
 	iter.disk_name = bio->bi_bdev->bd_disk->disk_name;
@@ -229,7 +229,7 @@ static int bio_integrity_process(struct bio *bio,
 	iter.prot_buf = prot_buf;
 
 	bio_for_each_segment(bv, bio, bviter) {
-		void *kaddr = kmap_atomic(bv.bv_page);
+		void *kaddr = kmap_atomic(bvec_page(&bv));
 
 		iter.data_buf = kaddr + bv.bv_offset;
 		iter.data_size = bv.bv_len;

@@ -332,7 +332,8 @@ void drbd_csum_bio(struct crypto_hash *tfm, struct bio *bio, void *digest)
 	crypto_hash_init(&desc);
 
 	bio_for_each_segment(bvec, bio, iter) {
-		sg_set_page(&sg, bvec.bv_page, bvec.bv_len, bvec.bv_offset);
+		sg_set_page(&sg, bvec_page(&bvec), bvec.bv_len,
+			    bvec.bv_offset);
 		crypto_hash_update(&desc, &sg, sg.length);
 	}
 	crypto_hash_final(&desc, digest);

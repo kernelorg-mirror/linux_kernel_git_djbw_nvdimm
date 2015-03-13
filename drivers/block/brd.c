@@ -349,7 +349,7 @@ static void brd_make_request(struct request_queue *q, struct bio *bio)
 
 	bio_for_each_segment(bvec, bio, iter) {
 		unsigned int len = bvec.bv_len;
-		err = brd_do_bvec(brd, bvec.bv_page, len,
+		err = brd_do_bvec(brd, bvec_page(&bvec), len,
 					bvec.bv_offset, rw, sector);
 		if (err)
 			break;

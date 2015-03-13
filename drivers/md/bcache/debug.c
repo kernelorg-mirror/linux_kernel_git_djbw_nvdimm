@@ -120,8 +120,8 @@ void bch_data_verify(struct cached_dev *dc, struct bio *bio)
 	submit_bio_wait(READ_SYNC, check);
 
 	bio_for_each_segment(bv, bio, iter) {
-		void *p1 = kmap_atomic(bv.bv_page);
-		void *p2 = page_address(check->bi_io_vec[iter.bi_idx].bv_page);
+		void *p1 = kmap_atomic(bvec_page(&bv));
+		void *p2 = page_address(bvec_page(&check->bi_io_vec[iter.bi_idx]));
 
 		cache_set_err_on(memcmp(p1 + bv.bv_offset,
 					p2 + bv.bv_offset,
@@ -135,7 +135,7 @@ void bch_data_verify(struct cached_dev *dc, struct bio *bio)
 	}
 
 	bio_for_each_segment_all(bv2, check, i)
-		__free_page(bv2->bv_page);
+		__free_page(bvec_page(bv2));
 out_put:
 	bio_put(check);
 }

@@ -1154,7 +1154,7 @@ static void index_rbio_pages(struct btrfs_raid_bio *rbio)
 		page_index = stripe_offset >> PAGE_CACHE_SHIFT;
 
 		for (i = 0; i < bio->bi_vcnt; i++) {
-			p = bio->bi_io_vec[i].bv_page;
+			p = bvec_page(&bio->bi_io_vec[i]);
 			rbio->bio_pages[page_index + i] = p;
 		}
 	}
@@ -1435,7 +1435,7 @@ static void set_bio_pages_uptodate(struct bio *bio)
 	struct page *p;
 
 	for (i = 0; i < bio->bi_vcnt; i++) {
-		p = bio->bi_io_vec[i].bv_page;
+		p = bvec_page(&bio->bi_io_vec[i]);
 		SetPageUptodate(p);
 	}
 }

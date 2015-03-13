@@ -2489,7 +2489,7 @@ static void end_bio_extent_writepage(struct bio *bio, int err)
 	int i;
 
 	bio_for_each_segment_all(bvec, bio, i) {
-		struct page *page = bvec->bv_page;
+		struct page *page = bvec_page(bvec);
 
 		/* We always issue full-page reads, but if some block
 		 * in a page fails to read, blk_update_request() will
@@ -2563,7 +2563,7 @@ static void end_bio_extent_readpage(struct bio *bio, int err)
 		uptodate = 0;
 
 	bio_for_each_segment_all(bvec, bio, i) {
-		struct page *page = bvec->bv_page;
+		struct page *page = bvec_page(bvec);
 		struct inode *inode = page->mapping->host;
 
 		pr_debug("end_bio_extent_readpage: bi_sector=%llu, err=%d, "
@@ -2751,7 +2751,7 @@ static int __must_check submit_one_bio(int rw, struct bio *bio,
 {
 	int ret = 0;
 	struct bio_vec *bvec = bio->bi_io_vec + bio->bi_vcnt - 1;
-	struct page *page = bvec->bv_page;
+	struct page *page = bvec_page(bvec);
 	struct extent_io_tree *tree = bio->bi_private;
 	u64 start;
 
@@ -3700,7 +3700,7 @@ static void end_bio_extent_buffer_writepage(struct bio *bio, int err)
 	int i, done;
 
 	bio_for_each_segment_all(bvec, bio, i) {
-		struct page *page = bvec->bv_page;
+		struct page *page = bvec_page(bvec);
 
 		eb = (struct extent_buffer *)page->private;
 		BUG_ON(!eb);

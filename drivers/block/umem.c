@@ -366,7 +366,7 @@ static int add_bio(struct cardinfo *card)
 	vec = bio_iter_iovec(bio, card->current_iter);
 
 	dma_handle = pci_map_page(card->dev,
-				  vec.bv_page,
+				  bvec_page(&vec),
 				  vec.bv_offset,
 				  vec.bv_len,
 				  (rw == READ) ?

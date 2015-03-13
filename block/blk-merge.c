@@ -51,7 +51,7 @@ static unsigned int __blk_recalc_rq_segments(struct request_queue *q,
 			 * never considered part of another segment, since
 			 * that might change with the bounce page.
 			 */
-			high = page_to_pfn(bv.bv_page) > queue_bounce_pfn(q);
+			high = page_to_pfn(bvec_page(&bv)) > queue_bounce_pfn(q);
 			if (!high && !highprv && cluster) {
 				if (seg_size + bv.bv_len
 				    > queue_max_segment_size(q))
@@ -192,7 +192,7 @@ new_segment:
 			*sg = sg_next(*sg);
 		}
 
-		sg_set_page(*sg, bvec->bv_page, nbytes, bvec->bv_offset);
+		sg_set_page(*sg, bvec_page(bvec), nbytes, bvec->bv_offset);
 		(*nsegs)++;
 	}
 	*bvprv = *bvec;
@@ -228,7 +228,8 @@ static int __blk_bios_map_sg(struct request_queue *q, struct bio *bio,
 single_segment:
 		*sg = sglist;
 		bvec = bio_iovec(bio);
-		sg_set_page(*sg, bvec.bv_page, bvec.bv_len, bvec.bv_offset);
+		sg_set_page(*sg, bvec_page(&bvec), bvec.bv_len,
+			    bvec.bv_offset);
 		return 1;
 	}
 

@@ -2997,11 +2997,11 @@ static void __btrfsic_submit_bio(int rw, struct bio *bio)
 		cur_bytenr = dev_bytenr;
 		for (i = 0; i < bio->bi_vcnt; i++) {
 			BUG_ON(bio->bi_io_vec[i].bv_len != PAGE_CACHE_SIZE);
-			mapped_datav[i] = kmap(bio->bi_io_vec[i].bv_page);
+			mapped_datav[i] = kmap(bvec_page(&bio->bi_io_vec[i]));
 			if (!mapped_datav[i]) {
 				while (i > 0) {
 					i--;
-					kunmap(bio->bi_io_vec[i].bv_page);
+					kunmap(bvec_page(&bio->bi_io_vec[i]));
 				}
 				kfree(mapped_datav);
 				goto leave;
@@ -3020,7 +3020,7 @@ static void __btrfsic_submit_bio(int rw, struct bio *bio)
 					      NULL, rw);
 		while (i > 0) {
 			i--;
-			kunmap(bio->bi_io_vec[i].bv_page);
+			kunmap(bvec_page(&bio->bi_io_vec[i]));
 		}
 		kfree(mapped_datav);
 	} else if (NULL != dev_state && (rw & REQ_FLUSH)) {

@@ -222,7 +222,7 @@ static int __btrfs_lookup_bio_sums(struct btrfs_root *root,
 		offset = logical_offset;
 	while (bio_index < bio->bi_vcnt) {
 		if (!dio)
-			offset = page_offset(bvec->bv_page) + bvec->bv_offset;
+			offset = page_offset(bvec_page(bvec)) + bvec->bv_offset;
 		count = btrfs_find_ordered_sum(inode, offset, disk_bytenr,
 					       (u32 *)csum, nblocks);
 		if (count)
@@ -448,7 +448,7 @@ int btrfs_csum_one_bio(struct btrfs_root *root, struct inode *inode,
 	if (contig)
 		offset = file_start;
 	else
-		offset = page_offset(bvec->bv_page) + bvec->bv_offset;
+		offset = page_offset(bvec_page(bvec)) + bvec->bv_offset;
 
 	ordered = btrfs_lookup_ordered_extent(inode, offset);
 	BUG_ON(!ordered); /* Logic error */
@@ -457,7 +457,7 @@ int btrfs_csum_one_bio(struct btrfs_root *root, struct inode *inode,
 
 	while (bio_index < bio->bi_vcnt) {
 		if (!contig)
-			offset = page_offset(bvec->bv_page) + bvec->bv_offset;
+			offset = page_offset(bvec_page(bvec)) + bvec->bv_offset;
 
 		if (offset >= ordered->file_offset + ordered->len ||
 		    offset < ordered->file_offset) {
@@ -480,7 +480,7 @@ int btrfs_csum_one_bio(struct btrfs_root *root, struct inode *inode,
 			index = 0;
 		}
 
-		data = kmap_atomic(bvec->bv_page);
+		data = kmap_atomic(bvec_page(bvec));
 		sums->sums[index] = ~(u32)0;
 		sums->sums[index] = btrfs_csum_data(data + bvec->bv_offset,
 						    sums->sums[index],

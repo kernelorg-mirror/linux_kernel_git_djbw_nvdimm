@@ -849,11 +849,11 @@ static int crypt_convert_block(struct crypt_config *cc,
 	dmreq->iv_sector = ctx->cc_sector;
 	dmreq->ctx = ctx;
 	sg_init_table(&dmreq->sg_in, 1);
-	sg_set_page(&dmreq->sg_in, bv_in.bv_page, 1 << SECTOR_SHIFT,
+	sg_set_page(&dmreq->sg_in, bvec_page(&bv_in), 1 << SECTOR_SHIFT,
 		    bv_in.bv_offset);
 
 	sg_init_table(&dmreq->sg_out, 1);
-	sg_set_page(&dmreq->sg_out, bv_out.bv_page, 1 << SECTOR_SHIFT,
+	sg_set_page(&dmreq->sg_out, bvec_page(&bv_out), 1 << SECTOR_SHIFT,
 		    bv_out.bv_offset);
 
 	bio_advance_iter(ctx->bio_in, &ctx->iter_in, 1 << SECTOR_SHIFT);
@@ -1003,7 +1003,7 @@ retry:
 		len = (remaining_size > PAGE_SIZE) ? PAGE_SIZE : remaining_size;
 
 		bvec = &clone->bi_io_vec[clone->bi_vcnt++];
-		bvec->bv_page = page;
+		bvec_set_page(bvec, page);
 		bvec->bv_len = len;
 		bvec->bv_offset = 0;
 
@@ -1025,9 +1025,9 @@ static void crypt_free_buffer_pages(struct crypt_config *cc, struct bio *clone)
 	struct bio_vec *bv;
 
 	bio_for_each_segment_all(bv, clone, i) {
-		BUG_ON(!bv->bv_page);
-		mempool_free(bv->bv_page, cc->page_pool);
-		bv->bv_page = NULL;
+		BUG_ON(!bvec_page(bv));
+		mempool_free(bvec_page(bv), cc->page_pool);
+		bvec_set_page(bv, NULL);
 	}
 }
 

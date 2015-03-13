@@ -490,7 +490,7 @@ static inline char *bvec_kmap_irq(struct bio_vec *bvec, unsigned long *flags)
 	 * balancing is a lot nicer this way
 	 */
 	local_irq_save(*flags);
-	addr = (unsigned long) kmap_atomic(bvec->bv_page);
+	addr = (unsigned long) kmap_atomic(bvec_page(bvec));
 
 	BUG_ON(addr & ~PAGE_MASK);
 
@@ -508,7 +508,7 @@ static inline void bvec_kunmap_irq(char *buffer, unsigned long *flags)
 #else
 static inline char *bvec_kmap_irq(struct bio_vec *bvec, unsigned long *flags)
 {
-	return page_address(bvec->bv_page) + bvec->bv_offset;
+	return page_address(bvec_page(bvec)) + bvec->bv_offset;
 }
 
 static inline void bvec_kunmap_irq(char *buffer, unsigned long *flags)
