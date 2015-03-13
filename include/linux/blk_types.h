@@ -6,6 +6,7 @@
 #define __LINUX_BLK_TYPES_H
 
 #include <linux/types.h>
+#include <linux/mm.h>
 
 struct bio_set;
 struct bio;
@@ -21,19 +22,36 @@ typedef void (bio_destructor_t) (struct bio *);
  * was unsigned short, but we might as well be ready for > 64kB I/O pages
  */
 struct bio_vec {
-	struct page	*bv_page;
+#ifdef CONFIG_KMAP_PFN
+	__pfn_t		bv_pfn;
+#else
+	/*
+	 * This union to be removed after v4.3-rc1 after all bv_page
+	 * users are confirmed converted to prevent bisection errors
+	 */
+	union {
+		__pfn_t bv_pfn;
+		struct page *bv_page;
+	};
+#endif
 	unsigned int	bv_len;
 	unsigned int	bv_offset;
 };
 
+#define BIO_VEC_INIT(name) { .bv_pfn = { .val = 0 }, .bv_len = 0, \
+	.bv_offset = 0 }
+
+#define BIO_VEC(name) \
+	struct bio_vec name = BIO_VEC_INIT(name)
+
 static inline struct page *bvec_page(const struct bio_vec *bvec)
 {
-	return bvec->bv_page;
+	return __pfn_t_to_page(bvec->bv_pfn);
 }
 
 static inline void bvec_set_page(struct bio_vec *bvec, struct page *page)
 {
-	bvec->bv_page = page;
+	bvec->bv_pfn = page_to_pfn_t(page);
 }
 
 #ifdef CONFIG_BLOCK

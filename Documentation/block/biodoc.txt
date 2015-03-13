@@ -412,7 +412,7 @@ mapped to bio structures.
 2.2 The bio struct
 
 The bio structure uses a vector representation pointing to an array of tuples
-of <page, offset, len> to describe the i/o buffer, and has various other
+of <pfn, offset, len> to describe the i/o buffer, and has various other
 fields describing i/o parameters and state that needs to be maintained for
 performing the i/o.
 
@@ -420,7 +420,7 @@ Notice that this representation means that a bio has no virtual address
 mapping at all (unlike buffer heads).
 
 struct bio_vec {
-       struct page     *bv_page;
+       __pfn_t         bv_pfn;
        unsigned short  bv_len;
        unsigned short  bv_offset;
 };

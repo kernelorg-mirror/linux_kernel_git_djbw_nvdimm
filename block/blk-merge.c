@@ -13,7 +13,7 @@ static unsigned int __blk_recalc_rq_segments(struct request_queue *q,
 					     struct bio *bio,
 					     bool no_sg_merge)
 {
-	struct bio_vec bv, bvprv = { NULL };
+	struct bio_vec bv, bvprv = BIO_VEC_INIT(bvprv);
 	int cluster, high, highprv = 1;
 	unsigned int seg_size, nr_phys_segs;
 	struct bio *fbio, *bbio;
@@ -123,7 +123,7 @@ EXPORT_SYMBOL(blk_recount_segments);
 static int blk_phys_contig_segment(struct request_queue *q, struct bio *bio,
 				   struct bio *nxt)
 {
-	struct bio_vec end_bv = { NULL }, nxt_bv;
+	struct bio_vec end_bv = BIO_VEC_INIT(end_bv), nxt_bv;
 	struct bvec_iter iter;
 
 	if (!blk_queue_cluster(q))
@@ -202,7 +202,7 @@ static int __blk_bios_map_sg(struct request_queue *q, struct bio *bio,
 			     struct scatterlist *sglist,
 			     struct scatterlist **sg)
 {
-	struct bio_vec bvec, bvprv = { NULL };
+	struct bio_vec bvec, bvprv = BIO_VEC_INIT(bvprv);
 	struct bvec_iter iter;
 	int nsegs, cluster;
 
