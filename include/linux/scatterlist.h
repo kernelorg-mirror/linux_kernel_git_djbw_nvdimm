@@ -9,6 +9,22 @@
 #include <asm/scatterlist.h>
 #include <asm/io.h>
 
+#ifndef __pfn_to_phys
+#define __pfn_to_phys(pfn)      ((dma_addr_t)(pfn) << PAGE_SHIFT)
+#endif
+
+static inline dma_addr_t pfn_to_phys(__pfn_t pfn)
+{
+	return __pfn_to_phys(pfn.pfn);
+}
+
+static inline __pfn_t page_to_pfn_typed(struct page *page)
+{
+	__pfn_t pfn = { .pfn = page_to_pfn(page) };
+
+	return pfn;
+}
+
 struct sg_table {
 	struct scatterlist *sgl;	/* the list */
 	unsigned int nents;		/* number of mapped entries */

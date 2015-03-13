@@ -5,7 +5,9 @@
 #ifndef __LINUX_BLK_TYPES_H
 #define __LINUX_BLK_TYPES_H
 
+#include <linux/scatterlist.h>
 #include <linux/types.h>
+#include <asm/pgtable.h>
 
 struct bio_set;
 struct bio;
@@ -21,19 +23,25 @@ typedef void (bio_destructor_t) (struct bio *);
  * was unsigned short, but we might as well be ready for > 64kB I/O pages
  */
 struct bio_vec {
-	struct page	*bv_page;
+	__pfn_t		bv_pfn;
 	unsigned int	bv_len;
 	unsigned int	bv_offset;
 };
 
+#define BIO_VEC_INIT(name) { .bv_pfn = { .pfn = 0 }, .bv_len = 0, \
+	.bv_offset = 0 }
+
+#define BIO_VEC(name) \
+	struct bio_vec name = BIO_VEC_INIT(name)
+
 static inline struct page *bvec_page(const struct bio_vec *bvec)
 {
-	return bvec->bv_page;
+	return pfn_to_page(bvec->bv_pfn.pfn);
 }
 
 static inline void bvec_set_page(struct bio_vec *bvec, struct page *page)
 {
-	bvec->bv_page = page;
+	bvec->bv_pfn = page_to_pfn_typed(page);
 }
 
 #ifdef CONFIG_BLOCK

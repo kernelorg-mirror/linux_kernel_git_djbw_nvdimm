@@ -265,7 +265,7 @@ int __swap_writepage(struct page *page, struct writeback_control *wbc,
 		struct file *swap_file = sis->swap_file;
 		struct address_space *mapping = swap_file->f_mapping;
 		struct bio_vec bv = {
-			.bv_page = page,
+			.bv_pfn = page_to_pfn_typed(page),
 			.bv_len  = PAGE_SIZE,
 			.bv_offset = 0
 		};
