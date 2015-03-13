@@ -1881,6 +1881,15 @@ generic_make_request_checks(struct bio *bio)
 		goto end_io;
 	}
 
+	if (bio_flagged(bio, BIO_PFN)) {
+		if (IS_ENABLED(CONFIG_KMAP_PFN) && blk_queue_pfn(q))
+			/* pass */;
+		else {
+			err = -EOPNOTSUPP;
+			goto end_io;
+		}
+	}
+
 	/*
 	 * Various block parts want %current->io_context and lazy ioc
 	 * allocation ends up trading a lot of pain for a small amount of
