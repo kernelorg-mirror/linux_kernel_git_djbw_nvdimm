@@ -568,6 +568,7 @@ void __bio_clone_fast(struct bio *bio, struct bio *bio_src)
 	bio->bi_rw = bio_src->bi_rw;
 	bio->bi_iter = bio_src->bi_iter;
 	bio->bi_io_vec = bio_src->bi_io_vec;
+	bio->bi_flags |= bio_src->bi_flags & (1 << BIO_PFN);
 }
 EXPORT_SYMBOL(__bio_clone_fast);
 
@@ -659,6 +660,8 @@ struct bio *bio_clone_bioset(struct bio *bio_src, gfp_t gfp_mask,
 		goto integrity_clone;
 	}
 
+	bio->bi_flags |= bio_src->bi_flags & (1 << BIO_PFN);
+
 	bio_for_each_segment(bv, bio_src, iter)
 		bio->bi_io_vec[bio->bi_vcnt++] = bv;
 
@@ -700,9 +703,9 @@ int bio_get_nr_vecs(struct block_device *bdev)
 }
 EXPORT_SYMBOL(bio_get_nr_vecs);
 
-static int __bio_add_page(struct request_queue *q, struct bio *bio, struct page
-			  *page, unsigned int len, unsigned int offset,
-			  unsigned int max_sectors)
+static int __bio_add_pfn(struct request_queue *q, struct bio *bio,
+		__pfn_t pfn, unsigned int len, unsigned int offset,
+		unsigned int max_sectors)
 {
 	int retried_segments = 0;
 	struct bio_vec *bvec;
@@ -724,7 +727,7 @@ static int __bio_add_page(struct request_queue *q, struct bio *bio, struct page
 	if (bio->bi_vcnt > 0) {
 		struct bio_vec *prev = &bio->bi_io_vec[bio->bi_vcnt - 1];
 
-		if (page == bvec_page(prev) &&
+		if (pfn.pfn == prev->bv_pfn.pfn &&
 		    offset == prev->bv_offset + prev->bv_len) {
 			unsigned int prev_bv_len = prev->bv_len;
 			prev->bv_len += len;
@@ -769,7 +772,7 @@ static int __bio_add_page(struct request_queue *q, struct bio *bio, struct page
 	 * cannot add the page
 	 */
 	bvec = &bio->bi_io_vec[bio->bi_vcnt];
-	bvec_set_page(bvec, page);
+	bvec->bv_pfn = pfn;
 	bvec->bv_len = len;
 	bvec->bv_offset = offset;
 	bio->bi_vcnt++;
@@ -819,7 +822,7 @@ static int __bio_add_page(struct request_queue *q, struct bio *bio, struct page
 	return len;
 
  failed:
-	bvec_set_page(bvec, NULL);
+	bvec->bv_pfn.pfn = 0;
 	bvec->bv_len = 0;
 	bvec->bv_offset = 0;
 	bio->bi_vcnt--;
@@ -846,7 +849,7 @@ static int __bio_add_page(struct request_queue *q, struct bio *bio, struct page
 int bio_add_pc_page(struct request_queue *q, struct bio *bio, struct page *page,
 		    unsigned int len, unsigned int offset)
 {
-	return __bio_add_page(q, bio, page, len, offset,
+	return __bio_add_pfn(q, bio, page_to_pfn_typed(page), len, offset,
 			      queue_max_hw_sectors(q));
 }
 EXPORT_SYMBOL(bio_add_pc_page);
@@ -873,9 +876,38 @@ int bio_add_page(struct bio *bio, struct page *page, unsigned int len,
 	if ((max_sectors < (len >> 9)) && !bio->bi_iter.bi_size)
 		max_sectors = len >> 9;
 
-	return __bio_add_page(q, bio, page, len, offset, max_sectors);
+	return __bio_add_pfn(q, bio, page_to_pfn_typed(page), len, offset,
+			max_sectors);
 }
 EXPORT_SYMBOL(bio_add_page);
+
+/**
+ *	bio_add_pfn -	attempt to add pfn to bio
+ *	@bio: destination bio
+ *	@pfn: pfn to add
+ *	@len: vec entry length
+ *	@offset: vec entry offset
+ *
+ *	Identical to bio_add_page() except this variant flags the bio as
+ *	not have struct page backing.  A given request_queue must assert
+ *	that it is prepared to handle this constraint before bio(s)
+ *	flagged in the manner can be passed.
+ */
+int bio_add_pfn(struct bio *bio, __pfn_t pfn, unsigned int len,
+		unsigned int offset)
+{
+	struct request_queue *q = bdev_get_queue(bio->bi_bdev);
+	unsigned int max_sectors;
+
+	if (!blk_queue_pfn(q))
+		return 0;
+	set_bit(BIO_PFN, &bio->bi_flags);
+	max_sectors = blk_max_size_offset(q, bio->bi_iter.bi_sector);
+	if ((max_sectors < (len >> 9)) && !bio->bi_iter.bi_size)
+		max_sectors = len >> 9;
+
+	return __bio_add_pfn(q, bio, pfn, len, offset, max_sectors);
+}
 
 struct submit_bio_ret {
 	struct completion event;

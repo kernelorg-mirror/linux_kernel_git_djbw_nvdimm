@@ -140,6 +140,7 @@ struct bio {
 #define BIO_NULL_MAPPED 8	/* contains invalid user pages */
 #define BIO_QUIET	9	/* Make BIO Quiet */
 #define BIO_SNAP_STABLE	10	/* bio data must be snapshotted during write */
+#define BIO_PFN		11	/* bio_vec references memory without struct page */
 
 /*
  * Flags starting here get preserved by bio_reset() - this includes
