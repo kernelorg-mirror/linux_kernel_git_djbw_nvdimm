@@ -34,10 +34,18 @@ extern void dma_debug_init(u32 num_entries);
 
 extern int dma_debug_resize_entries(u32 num_entries);
 
-extern void debug_dma_map_page(struct device *dev, struct page *page,
-			       size_t offset, size_t size,
-			       int direction, dma_addr_t dma_addr,
-			       bool map_single);
+extern void debug_dma_map_pfn(struct device *dev, __pfn_t pfn, size_t offset,
+			      size_t size, int direction, dma_addr_t dma_addr,
+			      bool map_single);
+
+static inline void debug_dma_map_page(struct device *dev, struct page *page,
+				      size_t offset, size_t size,
+				      int direction, dma_addr_t dma_addr,
+				      bool map_single)
+{
+	return debug_dma_map_pfn(dev, page_to_pfn_t(page), offset, size,
+			direction, dma_addr, map_single);
+}
 
 extern void debug_dma_mapping_error(struct device *dev, dma_addr_t dma_addr);
 
@@ -106,6 +114,13 @@ static inline void debug_dma_map_page(struct device *dev, struct page *page,
 				      size_t offset, size_t size,
 				      int direction, dma_addr_t dma_addr,
 				      bool map_single)
+{
+}
+
+static inline void debug_dma_map_pfn(struct device *dev, __pfn_t pfn,
+				     size_t offset, size_t size,
+				     int direction, dma_addr_t dma_addr,
+				     bool map_single)
 {
 }
 

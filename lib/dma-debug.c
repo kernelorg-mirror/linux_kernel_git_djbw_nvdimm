@@ -1253,11 +1253,12 @@ out:
 	put_hash_bucket(bucket, &flags);
 }
 
-void debug_dma_map_page(struct device *dev, struct page *page, size_t offset,
+void debug_dma_map_pfn(struct device *dev, __pfn_t pfn, size_t offset,
 			size_t size, int direction, dma_addr_t dma_addr,
 			bool map_single)
 {
 	struct dma_debug_entry *entry;
+	struct page *page;
 
 	if (unlikely(dma_debug_disabled()))
 		return;
@@ -1271,7 +1272,7 @@ void debug_dma_map_page(struct device *dev, struct page *page, size_t offset,
 
 	entry->dev       = dev;
 	entry->type      = dma_debug_page;
-	entry->pfn	 = page_to_pfn(page);
+	entry->pfn	 = __pfn_t_to_pfn(pfn);
 	entry->offset	 = offset,
 	entry->dev_addr  = dma_addr;
 	entry->size      = size;
@@ -1281,7 +1282,8 @@ void debug_dma_map_page(struct device *dev, struct page *page, size_t offset,
 	if (map_single)
 		entry->type = dma_debug_single;
 
-	if (!PageHighMem(page)) {
+	page = __pfn_t_to_page(pfn);
+	if (page && !PageHighMem(page)) {
 		void *addr = page_address(page) + offset;
 
 		check_for_stack(dev, addr);
@@ -1290,7 +1292,7 @@ void debug_dma_map_page(struct device *dev, struct page *page, size_t offset,
 
 	add_dma_entry(entry);
 }
-EXPORT_SYMBOL(debug_dma_map_page);
+EXPORT_SYMBOL(debug_dma_map_pfn);
 
 void debug_dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
 {
