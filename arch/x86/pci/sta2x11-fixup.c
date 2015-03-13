@@ -182,7 +182,11 @@ static void *sta2x11_swiotlb_alloc_coherent(struct device *dev,
 static struct dma_map_ops sta2x11_dma_ops = {
 	.alloc = sta2x11_swiotlb_alloc_coherent,
 	.free = x86_swiotlb_free_coherent,
+#ifdef CONFIG_HAVE_DMA_PFN
+	.map_pfn = swiotlb_map_pfn,
+#else
 	.map_page = swiotlb_map_page,
+#endif
 	.unmap_page = swiotlb_unmap_page,
 	.map_sg = swiotlb_map_sg_attrs,
 	.unmap_sg = swiotlb_unmap_sg_attrs,

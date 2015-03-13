@@ -727,12 +727,12 @@ swiotlb_full(struct device *dev, size_t size, enum dma_data_direction dir,
  * Once the device is given the dma address, the device owns this memory until
  * either swiotlb_unmap_page or swiotlb_dma_sync_single is performed.
  */
-dma_addr_t swiotlb_map_page(struct device *dev, struct page *page,
-			    unsigned long offset, size_t size,
-			    enum dma_data_direction dir,
-			    struct dma_attrs *attrs)
+dma_addr_t swiotlb_map_pfn(struct device *dev, __pfn_t pfn,
+			   unsigned long offset, size_t size,
+			   enum dma_data_direction dir,
+			   struct dma_attrs *attrs)
 {
-	phys_addr_t map, phys = page_to_phys(page) + offset;
+	phys_addr_t map, phys = pfn_to_phys(pfn) + offset;
 	dma_addr_t dev_addr = phys_to_dma(dev, phys);
 
 	BUG_ON(dir == DMA_NONE);
@@ -762,6 +762,16 @@ dma_addr_t swiotlb_map_page(struct device *dev, struct page *page,
 	}
 
 	return dev_addr;
+}
+EXPORT_SYMBOL_GPL(swiotlb_map_pfn);
+
+dma_addr_t swiotlb_map_page(struct device *dev, struct page *page,
+			    unsigned long offset, size_t size,
+			    enum dma_data_direction dir,
+			    struct dma_attrs *attrs)
+{
+	return swiotlb_map_pfn(dev, page_to_pfn_typed(page), offset, size, dir,
+			attrs);
 }
 EXPORT_SYMBOL_GPL(swiotlb_map_page);
 

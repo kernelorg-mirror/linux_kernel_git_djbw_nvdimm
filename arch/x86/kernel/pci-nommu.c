@@ -25,17 +25,25 @@ check_addr(char *name, struct device *hwdev, dma_addr_t bus, size_t size)
 	return 1;
 }
 
-static dma_addr_t nommu_map_page(struct device *dev, struct page *page,
-				 unsigned long offset, size_t size,
-				 enum dma_data_direction dir,
-				 struct dma_attrs *attrs)
+static dma_addr_t nommu_map_pfn(struct device *dev, __pfn_t pfn,
+				unsigned long offset, size_t size,
+				enum dma_data_direction dir,
+				struct dma_attrs *attrs)
 {
-	dma_addr_t bus = page_to_phys(page) + offset;
+	dma_addr_t bus = pfn_to_phys(pfn) + offset;
 	WARN_ON(size == 0);
 	if (!check_addr("map_single", dev, bus, size))
 		return DMA_ERROR_CODE;
 	flush_write_buffers();
 	return bus;
+}
+
+static __maybe_unused dma_addr_t nommu_map_page(struct device *dev,
+		struct page *page, unsigned long offset, size_t size,
+		enum dma_data_direction dir, struct dma_attrs *attrs)
+{
+	return nommu_map_pfn(dev, page_to_pfn_typed(page), offset, size, dir,
+			attrs);
 }
 
 /* Map a set of buffers described by scatterlist in streaming
@@ -92,7 +100,11 @@ struct dma_map_ops nommu_dma_ops = {
 	.alloc			= dma_generic_alloc_coherent,
 	.free			= dma_generic_free_coherent,
 	.map_sg			= nommu_map_sg,
+#ifdef CONFIG_HAVE_DMA_PFN
+	.map_pfn		= nommu_map_pfn,
+#else
 	.map_page		= nommu_map_page,
+#endif
 	.sync_single_for_device = nommu_sync_single_for_device,
 	.sync_sg_for_device	= nommu_sync_sg_for_device,
 	.is_phys		= 1,

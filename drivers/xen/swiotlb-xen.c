@@ -382,10 +382,10 @@ EXPORT_SYMBOL_GPL(xen_swiotlb_free_coherent);
  * Once the device is given the dma address, the device owns this memory until
  * either xen_swiotlb_unmap_page or xen_swiotlb_dma_sync_single is performed.
  */
-dma_addr_t xen_swiotlb_map_page(struct device *dev, struct page *page,
-				unsigned long offset, size_t size,
-				enum dma_data_direction dir,
-				struct dma_attrs *attrs)
+dma_addr_t xen_swiotlb_map_pfn(struct device *dev, unsigned long pfn,
+			       unsigned long offset, size_t size,
+			       enum dma_data_direction dir,
+			       struct dma_attrs *attrs)
 {
 	phys_addr_t map, phys = page_to_phys(page) + offset;
 	dma_addr_t dev_addr = xen_phys_to_bus(phys);
@@ -428,6 +428,16 @@ dma_addr_t xen_swiotlb_map_page(struct device *dev, struct page *page,
 		dev_addr = 0;
 	}
 	return dev_addr;
+}
+EXPORT_SYMBOL_GPL(xen_swiotlb_map_pfn);
+
+dma_addr_t xen_swiotlb_map_page(struct device *dev, struct page *page,
+				unsigned long offset, size_t size,
+				enum dma_data_direction dir,
+				struct dma_attrs *attrs)
+{
+	return xen_swiotlb_map_pfn(dev, page_to_pfn(page), offset, size, dir,
+			attrs);
 }
 EXPORT_SYMBOL_GPL(xen_swiotlb_map_page);
 
@@ -582,15 +592,14 @@ xen_swiotlb_map_sg_attrs(struct device *hwdev, struct scatterlist *sgl,
 						attrs);
 			sg->dma_address = xen_phys_to_bus(map);
 		} else {
+			__pfn_t pfn = { .pfn = paddr >> PAGE_SHIFT };
+			unsigned long offset = paddr & ~PAGE_MASK;
+
 			/* we are not interested in the dma_addr returned by
 			 * xen_dma_map_page, only in the potential cache flushes executed
 			 * by the function. */
-			xen_dma_map_page(hwdev, pfn_to_page(paddr >> PAGE_SHIFT),
-						dev_addr,
-						paddr & ~PAGE_MASK,
-						sg->length,
-						dir,
-						attrs);
+			xen_dma_map_pfn(hwdev, pfn, dev_addr, offset,
+					sg->length, attrs);
 			sg->dma_address = dev_addr;
 		}
 		sg_dma_len(sg) = sg->length;

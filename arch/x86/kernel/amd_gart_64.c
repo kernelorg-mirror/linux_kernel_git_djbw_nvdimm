@@ -239,13 +239,13 @@ static dma_addr_t dma_map_area(struct device *dev, dma_addr_t phys_mem,
 }
 
 /* Map a single area into the IOMMU */
-static dma_addr_t gart_map_page(struct device *dev, struct page *page,
-				unsigned long offset, size_t size,
-				enum dma_data_direction dir,
-				struct dma_attrs *attrs)
+static dma_addr_t gart_map_pfn(struct device *dev, __pfn_t pfn,
+			       unsigned long offset, size_t size,
+			       enum dma_data_direction dir,
+			       struct dma_attrs *attrs)
 {
 	unsigned long bus;
-	phys_addr_t paddr = page_to_phys(page) + offset;
+	phys_addr_t paddr = pfn_to_phys(pfn) + offset;
 
 	if (!dev)
 		dev = &x86_dma_fallback_dev;
@@ -257,6 +257,14 @@ static dma_addr_t gart_map_page(struct device *dev, struct page *page,
 	flush_gart();
 
 	return bus;
+}
+
+static __maybe_unused dma_addr_t gart_map_page(struct device *dev,
+		struct page *page, unsigned long offset, size_t size,
+		enum dma_data_direction dir, struct dma_attrs *attrs)
+{
+	return gart_map_pfn(dev, page_to_pfn_typed(page), offset, size, dir,
+			attrs);
 }
 
 /*
@@ -699,7 +707,11 @@ static __init int init_amd_gatt(struct agp_kern_info *info)
 static struct dma_map_ops gart_dma_ops = {
 	.map_sg				= gart_map_sg,
 	.unmap_sg			= gart_unmap_sg,
+#ifdef CONFIG_HAVE_DMA_PFN
+	.map_pfn			= gart_map_pfn,
+#else
 	.map_page			= gart_map_page,
+#endif
 	.unmap_page			= gart_unmap_page,
 	.alloc				= gart_alloc_coherent,
 	.free				= gart_free_coherent,

@@ -801,6 +801,7 @@ config CALGARY_IOMMU
 	bool "IBM Calgary IOMMU support"
 	select SWIOTLB
 	depends on X86_64 && PCI
+	depends on !HAVE_DMA_PFN
 	---help---
 	  Support for hardware IOMMUs in IBM's xSeries x366 and x460
 	  systems. Needed to run systems with more than 3GB of memory
@@ -1429,6 +1430,17 @@ config ILLEGAL_POINTER_VALUE
        default 0xdead000000000000 if X86_64
 
 source "mm/Kconfig"
+
+config PMEM_DMA
+	bool "Support DMA to Persistent Memory"
+	select HAVE_DMA_PFN
+	---help---
+	  Enable drivers that are capable of performing DMA to
+	  Persistent Memory.  Drivers with this capability are prepared
+	  to map memory with either dma_map_pfn() or a dma_map_sg()
+	  implementation that is pfn capable.  Note, some iommus, like
+	  CONFIG_CALGARY_IOMMU are incompatible (disabled by this
+	  option).
 
 config HIGHPTE
 	bool "Allocate 3rd-level pagetables from highmem"

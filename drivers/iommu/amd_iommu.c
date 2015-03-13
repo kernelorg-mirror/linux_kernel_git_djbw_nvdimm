@@ -2765,16 +2765,15 @@ static void __unmap_single(struct dma_ops_domain *dma_dom,
 /*
  * The exported map_single function for dma_ops.
  */
-static dma_addr_t map_page(struct device *dev, struct page *page,
-			   unsigned long offset, size_t size,
-			   enum dma_data_direction dir,
-			   struct dma_attrs *attrs)
+static dma_addr_t map_pfn(struct device *dev, __pfn_t pfn, unsigned long offset,
+		size_t size, enum dma_data_direction dir,
+		struct dma_attrs *attrs)
 {
 	unsigned long flags;
 	struct protection_domain *domain;
 	dma_addr_t addr;
 	u64 dma_mask;
-	phys_addr_t paddr = page_to_phys(page) + offset;
+	phys_addr_t paddr = pfn_to_phys(pfn) + offset;
 
 	INC_STATS_COUNTER(cnt_map_single);
 
@@ -2799,6 +2798,14 @@ out:
 	spin_unlock_irqrestore(&domain->lock, flags);
 
 	return addr;
+
+}
+
+static __maybe_unused dma_addr_t map_page(struct device *dev, struct page *page,
+		unsigned long offset, size_t size, enum dma_data_direction dir,
+		struct dma_attrs *attrs)
+{
+	return map_pfn(dev, page_to_pfn_typed(page), offset, size, dir, attrs);
 }
 
 /*
@@ -3063,7 +3070,11 @@ static void __init prealloc_protection_domains(void)
 static struct dma_map_ops amd_iommu_dma_ops = {
 	.alloc = alloc_coherent,
 	.free = free_coherent,
+#ifdef CONFIG_HAVE_DMA_PFN
+	.map_pfn = map_pfn,
+#else
 	.map_page = map_page,
+#endif
 	.unmap_page = unmap_page,
 	.map_sg = map_sg,
 	.unmap_sg = unmap_sg,
