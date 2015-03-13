@@ -25,6 +25,15 @@
 #include <linux/scatterlist.h>
 #include <linux/sched.h>
 
+#ifdef CONFIG_HAVE_DMA_PFN
+/*
+ * If we're using PFNs, the architecture must also have been converted to
+ * support SG_CHAIN.  So we can use the generic code instead of custom
+ * code.
+ */
+#define scatterwalk_sg_chain(prv, num, sgl)	sg_chain(prv, num, sgl)
+#define scatterwalk_sg_next(sgl)		sg_next(sgl)
+#else
 static inline void scatterwalk_sg_chain(struct scatterlist *sg1, int num,
 					struct scatterlist *sg2)
 {
@@ -32,6 +41,7 @@ static inline void scatterwalk_sg_chain(struct scatterlist *sg1, int num,
 	sg1[num - 1].page_link &= ~0x02;
 	sg1[num - 1].page_link |= 0x01;
 }
+#endif
 
 static inline void scatterwalk_crypto_chain(struct scatterlist *head,
 					    struct scatterlist *sg,

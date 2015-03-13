@@ -5,6 +5,7 @@
 #include <linux/bug.h>
 #include <linux/mm.h>
 
+#include <asm/page.h>
 #include <asm/types.h>
 #include <asm/scatterlist.h>
 #include <asm/io.h>
@@ -34,8 +35,14 @@ struct sg_table {
 /*
  * Notes on SG table design.
  *
- * Architectures must provide an unsigned long page_link field in the
- * scatterlist struct. We use that to place the page pointer AND encode
+ * Architectures may define CONFIG_HAVE_DMA_PFN to indicate that they wish
+ * to support SGLs that point to pages which do not have a struct page to
+ * describe them.  If so, they should provide an sg_flags field in their
+ * scatterlist struct (see asm-generic for an example) as well as a pfn
+ * field.
+ *
+ * Otherwise, architectures must provide an unsigned long page_link field in
+ * the scatterlist struct. We use that to place the page pointer AND encode
  * information about the sg table as well. The two lower bits are reserved
  * for this information.
  *
@@ -49,16 +56,25 @@ struct sg_table {
  */
 
 #define SG_MAGIC	0x87654321
+#define SG_FLAGS_CHAIN	0x0001
+#define SG_FLAGS_LAST	0x0002
+#define SG_FLAGS_PAGE	0x0004
 
+#ifdef CONFIG_HAVE_DMA_PFN
+#define sg_is_chain(sg)		((sg)->sg_flags & SG_FLAGS_CHAIN)
+#define sg_is_last(sg)		((sg)->sg_flags & SG_FLAGS_LAST)
+#define sg_chain_ptr(sg)	((struct scatterlist *)((sg)->pfn.pfn))
+#else /* !CONFIG_HAVE_DMA_PFN */
 /*
  * We overload the LSB of the page pointer to indicate whether it's
  * a valid sg entry, or whether it points to the start of a new scatterlist.
  * Those low bits are there for everyone! (thanks mason :-)
  */
-#define sg_is_chain(sg)		((sg)->page_link & 0x01)
-#define sg_is_last(sg)		((sg)->page_link & 0x02)
+#define sg_is_chain(sg)		((sg)->page_link & SG_FLAGS_CHAIN)
+#define sg_is_last(sg)		((sg)->page_link & SG_FLAGS_LAST)
 #define sg_chain_ptr(sg)	\
 	((struct scatterlist *) ((sg)->page_link & ~0x03))
+#endif /* !CONFIG_HAVE_DMA_PFN */
 
 /**
  * sg_assign_page - Assign a given page to an SG entry
@@ -72,6 +88,14 @@ struct sg_table {
  **/
 static inline void sg_assign_page(struct scatterlist *sg, struct page *page)
 {
+#ifdef CONFIG_HAVE_DMA_PFN
+#ifdef CONFIG_DEBUG_SG
+	BUG_ON(sg->sg_magic != SG_MAGIC);
+	BUG_ON(sg_is_chain(sg));
+#endif
+	sg->pfn = page_to_pfn_typed(page);
+	sg->sg_flags |= SG_FLAGS_PAGE;
+#else /* !CONFIG_HAVE_DMA_PFN */
 	unsigned long page_link = sg->page_link & 0x3;
 
 	/*
@@ -84,6 +108,7 @@ static inline void sg_assign_page(struct scatterlist *sg, struct page *page)
 	BUG_ON(sg_is_chain(sg));
 #endif
 	sg->page_link = page_link | (unsigned long) page;
+#endif /* !CONFIG_HAVE_DMA_PFN */
 }
 
 /**
@@ -104,9 +129,26 @@ static inline void sg_set_page(struct scatterlist *sg, struct page *page,
 			       unsigned int len, unsigned int offset)
 {
 	sg_assign_page(sg, page);
+	BUG_ON(offset > 65535);
 	sg->offset = offset;
 	sg->length = len;
 }
+
+#ifdef CONFIG_HAVE_DMA_PFN
+static inline void sg_set_pfn(struct scatterlist *sg, __pfn_t pfn,
+			      unsigned int len, unsigned int offset)
+{
+#ifdef CONFIG_DEBUG_SG
+	BUG_ON(sg->sg_magic != SG_MAGIC);
+	BUG_ON(sg_is_chain(sg));
+#endif
+	sg->pfn = pfn;
+	BUG_ON(offset > 65535);
+	sg->offset = offset;
+	sg->sg_flags = 0;
+	sg->length = len;
+}
+#endif
 
 static inline struct page *sg_page(struct scatterlist *sg)
 {
@@ -114,7 +156,12 @@ static inline struct page *sg_page(struct scatterlist *sg)
 	BUG_ON(sg->sg_magic != SG_MAGIC);
 	BUG_ON(sg_is_chain(sg));
 #endif
+#ifdef CONFIG_HAVE_DMA_PFN
+	BUG_ON(!(sg->sg_flags & SG_FLAGS_PAGE));
+	return pfn_to_page(sg->pfn.pfn);
+#else
 	return (struct page *)((sg)->page_link & ~0x3);
+#endif
 }
 
 /**
@@ -166,7 +213,12 @@ static inline void sg_chain(struct scatterlist *prv, unsigned int prv_nents,
 	 * Set lowest bit to indicate a link pointer, and make sure to clear
 	 * the termination bit if it happens to be set.
 	 */
+#ifdef CONFIG_HAVE_DMA_PFN
+	prv[prv_nents - 1].pfn.pfn = (unsigned long) sgl;
+	prv[prv_nents - 1].sg_flags = SG_FLAGS_CHAIN;
+#else
 	prv[prv_nents - 1].page_link = ((unsigned long) sgl | 0x01) & ~0x02;
+#endif
 }
 
 /**
@@ -186,8 +238,13 @@ static inline void sg_mark_end(struct scatterlist *sg)
 	/*
 	 * Set termination bit, clear potential chain bit
 	 */
-	sg->page_link |= 0x02;
-	sg->page_link &= ~0x01;
+#ifdef CONFIG_HAVE_DMA_PFN
+	sg->sg_flags |= SG_FLAGS_LAST;
+	sg->sg_flags &= ~SG_FLAGS_CHAIN;
+#else
+	sg->page_link |= SG_FLAGS_LAST;
+	sg->page_link &= ~SG_FLAGS_CHAIN;
+#endif
 }
 
 /**
@@ -203,7 +260,11 @@ static inline void sg_unmark_end(struct scatterlist *sg)
 #ifdef CONFIG_DEBUG_SG
 	BUG_ON(sg->sg_magic != SG_MAGIC);
 #endif
-	sg->page_link &= ~0x02;
+#ifdef CONFIG_HAVE_DMA_PFN
+	sg->sg_flags &= ~SG_FLAGS_LAST;
+#else
+	sg->page_link &= ~SG_FLAGS_LAST;
+#endif
 }
 
 /**
@@ -218,7 +279,11 @@ static inline void sg_unmark_end(struct scatterlist *sg)
  **/
 static inline dma_addr_t sg_phys(struct scatterlist *sg)
 {
+#ifdef CONFIG_HAVE_DMA_PFN
+	return pfn_to_phys(sg->pfn) + sg->offset;
+#else
 	return page_to_phys(sg_page(sg)) + sg->offset;
+#endif
 }
 
 /**
@@ -233,7 +298,11 @@ static inline dma_addr_t sg_phys(struct scatterlist *sg)
  **/
 static inline void *sg_virt(struct scatterlist *sg)
 {
+#ifdef CONFIG_HAVE_DMA_PFN
+	return __va(pfn_to_phys(sg->pfn)) + sg->offset;
+#else
 	return page_address(sg_page(sg)) + sg->offset;
+#endif
 }
 
 int sg_nents(struct scatterlist *sg);

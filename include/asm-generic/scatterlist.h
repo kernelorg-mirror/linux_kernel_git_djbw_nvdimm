@@ -7,8 +7,14 @@ struct scatterlist {
 #ifdef CONFIG_DEBUG_SG
 	unsigned long	sg_magic;
 #endif
+#ifdef CONFIG_HAVE_DMA_PFN
+	__pfn_t		pfn;
+	unsigned short	offset;
+	unsigned short	sg_flags;
+#else
 	unsigned long	page_link;
 	unsigned int	offset;
+#endif
 	unsigned int	length;
 	dma_addr_t	dma_address;
 #ifdef CONFIG_NEED_SG_DMA_LENGTH
