@@ -20,6 +20,7 @@
 #ifndef __LINUX_BIO_H
 #define __LINUX_BIO_H
 
+#include <linux/kmap_pfn.h>
 #include <linux/highmem.h>
 #include <linux/mempool.h>
 #include <linux/ioprio.h>
@@ -161,7 +162,7 @@ static inline void *bio_data(struct bio *bio)
  * I/O completely on that queue (see ide-dma for example)
  */
 #define __bio_kmap_atomic(bio, iter)				\
-	(kmap_atomic(bvec_page(bio_iter_iovec((bio), (iter)))) +   \
+	(kmap_atomic_pfn_t(bio_iter_iovec((bio), (iter)).pfn) +   \
 		bio_iter_iovec((bio), (iter)).bv_offset)
 
 #define __bio_kunmap_atomic(addr)	kunmap_atomic(addr)
@@ -507,7 +508,7 @@ static inline char *bvec_kmap_irq(struct bio_vec *bvec, unsigned long *flags)
 	 * balancing is a lot nicer this way
 	 */
 	local_irq_save(*flags);
-	addr = (unsigned long) kmap_atomic(bvec_page(bvec));
+	addr = (unsigned long) kmap_atomic_pfn_t(bvec.pfn);
 
 	BUG_ON(addr & ~PAGE_MASK);
 
@@ -518,18 +519,21 @@ static inline void bvec_kunmap_irq(char *buffer, unsigned long *flags)
 {
 	unsigned long ptr = (unsigned long) buffer & PAGE_MASK;
 
-	kunmap_atomic((void *) ptr);
+	kunmap_atomic_pfn_t((void *) ptr);
 	local_irq_restore(*flags);
 }
 
 #else
 static inline char *bvec_kmap_irq(struct bio_vec *bvec, unsigned long *flags)
 {
-	return page_address(bvec_page(bvec)) + bvec->bv_offset;
+	return kmap_atomic_pfn_t(bvec->bv_pfn) + bvec->bv_offset;
 }
 
 static inline void bvec_kunmap_irq(char *buffer, unsigned long *flags)
 {
+	unsigned long ptr = (unsigned long) buffer & PAGE_MASK;
+
+	kunmap_atomic_pfn_t((void *) ptr);
 	*flags = 0;
 }
 #endif
