@@ -55,7 +55,7 @@ static struct dma_map_ops swiotlb_dma_ops = {
 	.sync_sg_for_device = swiotlb_sync_sg_for_device,
 	.map_sg = swiotlb_map_sg_attrs,
 	.unmap_sg = swiotlb_unmap_sg_attrs,
-	.map_page = swiotlb_map_page,
+	.map_pfn = swiotlb_map_pfn,
 	.unmap_page = swiotlb_unmap_page,
 	.dma_supported = NULL,
 };

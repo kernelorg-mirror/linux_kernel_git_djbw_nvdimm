@@ -3409,13 +3409,21 @@ error:
 	return 0;
 }
 
-static dma_addr_t intel_map_page(struct device *dev, struct page *page,
-				 unsigned long offset, size_t size,
-				 enum dma_data_direction dir,
-				 struct dma_attrs *attrs)
+static dma_addr_t intel_map_pfn(struct device *dev, __pfn_t pfn,
+				unsigned long offset, size_t size,
+				enum dma_data_direction dir,
+				struct dma_attrs *attrs)
 {
-	return __intel_map_single(dev, page_to_phys(page) + offset, size,
+	return __intel_map_single(dev, __pfn_t_to_phys(pfn) + offset, size,
 				  dir, *dev->dma_mask);
+}
+
+static __maybe_unused dma_addr_t intel_map_page(struct device *dev,
+		struct page *page, unsigned long offset, size_t size,
+		enum dma_data_direction dir, struct dma_attrs *attrs)
+{
+	return intel_map_pfn(dev, page_to_pfn_t(page), offset, size, dir,
+			attrs);
 }
 
 static void flush_unmaps(void)
@@ -3703,7 +3711,7 @@ struct dma_map_ops intel_dma_ops = {
 	.free = intel_free_coherent,
 	.map_sg = intel_map_sg,
 	.unmap_sg = intel_unmap_sg,
-	.map_page = intel_map_page,
+	.map_pfn = intel_map_pfn,
 	.unmap_page = intel_unmap_page,
 	.mapping_error = intel_mapping_error,
 };

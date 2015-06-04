@@ -155,9 +155,9 @@ static inline struct page *sg_page(struct scatterlist *sg)
 	return page;
 }
 
-static inline unsigned long sg_pfn(struct scatterlist *sg)
+static inline __pfn_t sg_pfn(struct scatterlist *sg)
 {
-	return __pfn_t_to_pfn(sg->pfn);
+	return sg->pfn;
 }
 
 /**
