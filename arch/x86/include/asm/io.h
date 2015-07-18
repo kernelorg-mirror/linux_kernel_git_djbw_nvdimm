@@ -245,7 +245,7 @@ static inline void flush_write_buffers(void)
 #endif
 }
 
-void __pmem *arch_memremap_pmem(resource_size_t offset, size_t size);
+unsigned long arch_memremap_pmem_flags(resource_size_t offset, size_t size);
 #endif /* __KERNEL__ */
 
 extern void native_io_delay(void);
