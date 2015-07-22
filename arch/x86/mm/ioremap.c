@@ -310,16 +310,26 @@ void __iomem *ioremap_wt(resource_size_t phys_addr, unsigned long size)
 }
 EXPORT_SYMBOL(ioremap_wt);
 
-void __iomem *ioremap_cache(resource_size_t phys_addr, unsigned long size)
+void *arch_memremap(resource_size_t phys_addr, size_t size,
+		unsigned long flags)
 {
-	return __ioremap_caller(phys_addr, size, _PAGE_CACHE_MODE_WB,
-				__builtin_return_address(0));
+	int prot;
+
+	if (flags & MEMREMAP_WB)
+		prot = _PAGE_CACHE_MODE_WB;
+	else if (flags & MEMREMAP_WT)
+		prot = _PAGE_CACHE_MODE_WT;
+	else
+		return NULL;
+
+	return (void __force *) __ioremap_caller(phys_addr, size, prot,
+			__builtin_return_address(0));
 }
-EXPORT_SYMBOL(ioremap_cache);
+EXPORT_SYMBOL(arch_memremap);
 
 void __pmem *arch_memremap_pmem(resource_size_t offset, size_t size)
 {
-	return (void __force __pmem *) ioremap_cache(offset, size);
+	return (void __pmem *) arch_memremap(offset, size, MEMREMAP_WB);
 }
 EXPORT_SYMBOL(arch_memremap_pmem);
 
@@ -380,6 +390,12 @@ void iounmap(volatile void __iomem *addr)
 	kfree(p);
 }
 EXPORT_SYMBOL(iounmap);
+
+void arch_memunmap(void *addr)
+{
+	iounmap((volatile void __iomem *) addr);
+}
+EXPORT_SYMBOL(arch_memunmap);
 
 int __init arch_ioremap_pud_supported(void)
 {

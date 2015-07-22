@@ -14,13 +14,22 @@
 #include <linux/io.h>
 #include <linux/mm.h>
 
-#ifndef ioremap_cache
-/* temporary while we convert existing ioremap_cache users to memremap */
-__weak void __iomem *ioremap_cache(resource_size_t offset, unsigned long size)
+__weak void *arch_memremap(resource_size_t offset, size_t size,
+		unsigned long flags)
 {
-	return ioremap(offset, size);
+	if (!IS_ENABLED(CONFIG_MMU))
+		return (void *) (unsigned long) offset;
+	WARN_ONCE(1, "%s in %s should only be called in NOMMU configurations\n",
+			__func__, __FILE__);
+	return NULL;
 }
-#endif
+
+__weak void arch_memunmap(void *addr)
+{
+	WARN_ONCE(IS_ENABLED(CONFIG_MMU),
+		"%s in %s should only be called in NOMMU configurations\n",
+		__func__, __FILE__);
+}
 
 /**
  * memremap() - remap an iomem_resource as cacheable memory
@@ -42,6 +51,9 @@ __weak void __iomem *ioremap_cache(resource_size_t offset, unsigned long size)
  * cache or are written through to memory and never exist in a
  * cache-dirty state with respect to program visibility.  Attempts to
  * map "System RAM" with this mapping type will fail.
+ *
+ * Note, that overlapping mappings can be established provided they are
+ * all of the same mapping type.
  */
 void *memremap(resource_size_t offset, size_t size, unsigned long flags)
 {
@@ -66,7 +78,7 @@ void *memremap(resource_size_t offset, size_t size, unsigned long flags)
 		if (is_ram == REGION_INTERSECTS)
 			addr = __va(offset);
 		else
-			addr = ioremap_cache(offset, size);
+			addr = arch_memremap(offset, size, MEMREMAP_WB);
 	}
 
 	/*
@@ -83,7 +95,7 @@ void *memremap(resource_size_t offset, size_t size, unsigned long flags)
 
 	if (!addr && (flags & MEMREMAP_WT)) {
 		flags &= ~MEMREMAP_WT;
-		addr = ioremap_wt(offset, size);
+		addr = arch_memremap(offset, size, MEMREMAP_WT);
 	}
 
 	return addr;
@@ -93,6 +105,6 @@ EXPORT_SYMBOL(memremap);
 void memunmap(void *addr)
 {
 	if (is_vmalloc_addr(addr))
-		iounmap((void __iomem *) addr);
+		arch_memunmap(addr);
 }
 EXPORT_SYMBOL(memunmap);

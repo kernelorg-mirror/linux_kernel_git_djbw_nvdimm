@@ -101,6 +101,22 @@ ioremap (unsigned long phys_addr, unsigned long size)
 }
 EXPORT_SYMBOL(ioremap);
 
+/*
+ * Cache mapping-type is determined internal to ioremap and can't be
+ * externally specified
+ */
+void *arch_memremap(resource_size_t offset, size_t size, unsigned long flags)
+{
+	return (void __force *) ioremap(offset, size);
+}
+EXPORT_SYMBOL(arch_memremap);
+
+void arch_memunmap(void *addr)
+{
+	iounmap((volatile void __iomem *) addr);
+}
+EXPORT_SYMBOL(arch_memunmap);
+
 void __iomem *
 ioremap_nocache (unsigned long phys_addr, unsigned long size)
 {
