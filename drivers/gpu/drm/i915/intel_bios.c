@@ -1206,11 +1206,10 @@ static const struct bdb_header *validate_vbt(const void __iomem *_base,
 {
 	/*
 	 * This is the one place where we explicitly discard the address space
-	 * (__iomem) of the BIOS/VBT. (And this will cause a sparse complaint.)
-	 * From now on everything is based on 'base', and treated as regular
-	 * memory.
+	 * (__iomem) of the BIOS/VBT. From now on everything is based on
+	 * 'base', and treated as regular memory.
 	 */
-	const void *base = (const void *) _base;
+	const void *base = (const void __force *) _base;
 	size_t offset = _vbt - _base;
 	const struct vbt_header *vbt = base + offset;
 	const struct bdb_header *bdb;
