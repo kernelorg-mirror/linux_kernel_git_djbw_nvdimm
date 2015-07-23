@@ -34,6 +34,7 @@
 #include <linux/mempool.h>
 #include <linux/memory.h>
 #include <linux/timer.h>
+#include <linux/io.h>
 #include <linux/iova.h>
 #include <linux/iommu.h>
 #include <linux/intel-iommu.h>
@@ -2874,7 +2875,8 @@ static int copy_context_table(struct intel_iommu *iommu,
 			}
 
 			ret = -ENOMEM;
-			old_ce = ioremap_cache(old_ce_phys, PAGE_SIZE);
+			old_ce = memremap(old_ce_phys, PAGE_SIZE,
+					MEMREMAP_WB);
 			if (!old_ce)
 				goto out;
 
@@ -2922,7 +2924,7 @@ static int copy_context_table(struct intel_iommu *iommu,
 	__iommu_flush_cache(iommu, new_ce, VTD_PAGE_SIZE);
 
 out_unmap:
-	iounmap(old_ce);
+	memunmap(old_ce);
 
 out:
 	return ret;
@@ -2956,7 +2958,7 @@ static int copy_translation_tables(struct intel_iommu *iommu)
 	if (!old_rt_phys)
 		return -EINVAL;
 
-	old_rt = ioremap_cache(old_rt_phys, PAGE_SIZE);
+	old_rt = memremap(old_rt_phys, PAGE_SIZE, MEMREMAP_WB);
 	if (!old_rt)
 		return -ENOMEM;
 
@@ -3005,7 +3007,7 @@ static int copy_translation_tables(struct intel_iommu *iommu)
 	ret = 0;
 
 out_unmap:
-	iounmap(old_rt);
+	memunmap(old_rt);
 
 	return ret;
 }
