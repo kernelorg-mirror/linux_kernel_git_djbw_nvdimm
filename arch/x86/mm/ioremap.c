@@ -317,6 +317,12 @@ void __iomem *ioremap_cache(resource_size_t phys_addr, unsigned long size)
 }
 EXPORT_SYMBOL(ioremap_cache);
 
+void __pmem *arch_memremap_pmem(resource_size_t offset, size_t size)
+{
+	return (void __force __pmem *) ioremap_cache(offset, size);
+}
+EXPORT_SYMBOL(arch_memremap_pmem);
+
 void __iomem *ioremap_prot(resource_size_t phys_addr, unsigned long size,
 				unsigned long prot_val)
 {

@@ -80,11 +80,11 @@ void __iomem *__wrap_devm_ioremap_nocache(struct device *dev,
 }
 EXPORT_SYMBOL(__wrap_devm_ioremap_nocache);
 
-void __iomem *__wrap_ioremap_cache(resource_size_t offset, unsigned long size)
+void *__wrap_arch_memremap_pmem(resource_size_t offset, size_t size)
 {
-	return __nfit_test_ioremap(offset, size, ioremap_cache);
+	return __nfit_test_ioremap(offset, size, arch_memremap_pmem);
 }
-EXPORT_SYMBOL(__wrap_ioremap_cache);
+EXPORT_SYMBOL(__wrap_arch_memremap_pmem);
 
 void __iomem *__wrap_ioremap_nocache(resource_size_t offset, unsigned long size)
 {
