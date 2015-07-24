@@ -94,7 +94,7 @@ static void default_memcpy_to_pmem(void __pmem *dst, const void *src,
 static void __pmem *default_memremap_pmem(resource_size_t offset,
 		unsigned long size)
 {
-	return (void __pmem __force *)ioremap_wt(offset, size);
+	return (void __pmem *) memremap(offset, size, MEMREMAP_WT);
 }
 
 /**
