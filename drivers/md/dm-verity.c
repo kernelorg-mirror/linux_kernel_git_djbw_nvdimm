@@ -408,7 +408,7 @@ test_block_hash:
 			unsigned len;
 			struct bio_vec bv = bio_iter_iovec(bio, io->iter);
 
-			page = kmap_atomic(bv.bv_page);
+			page = kmap_atomic(bvec_page(&bv));
 			len = bv.bv_len;
 			if (likely(len >= todo))
 				len = todo;

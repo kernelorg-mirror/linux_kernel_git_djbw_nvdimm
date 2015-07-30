@@ -2374,7 +2374,7 @@ static int buffer_chain_size(void)
 	size = 0;
 
 	rq_for_each_segment(bv, current_req, iter) {
-		if (page_address(bv.bv_page) + bv.bv_offset != base + size)
+		if (page_address(bvec_page(&bv)) + bv.bv_offset != base + size)
 			break;
 
 		size += bv.bv_len;
@@ -2444,7 +2444,7 @@ static void copy_buffer(int ssize, int max_sector, int max_sector_2)
 		size = bv.bv_len;
 		SUPBOUND(size, remaining);
 
-		buffer = page_address(bv.bv_page) + bv.bv_offset;
+		buffer = page_address(bvec_page(&bv)) + bv.bv_offset;
 		if (dma_buffer + size >
 		    floppy_track_buffer + (max_buffer_sectors << 10) ||
 		    dma_buffer < floppy_track_buffer) {
@@ -3805,7 +3805,7 @@ static int __floppy_read_block_0(struct block_device *bdev, int drive)
 
 	bio_init(&bio);
 	bio.bi_io_vec = &bio_vec;
-	bio_vec.bv_page = page;
+	bvec_set_page(&bio_vec, page);
 	bio_vec.bv_len = size;
 	bio_vec.bv_offset = 0;
 	bio.bi_vcnt = 1;

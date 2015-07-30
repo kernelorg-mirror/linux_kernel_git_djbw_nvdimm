@@ -366,7 +366,7 @@ static void btree_node_write_done(struct closure *cl)
 	int n;
 
 	bio_for_each_segment_all(bv, b->bio, n)
-		__free_page(bv->bv_page);
+		__free_page(bvec_page(bv));
 
 	__btree_node_write_done(cl);
 }

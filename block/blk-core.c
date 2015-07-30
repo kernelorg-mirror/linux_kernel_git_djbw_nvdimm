@@ -1461,7 +1461,7 @@ void blk_add_request_payload(struct request *rq, struct page *page,
 {
 	struct bio *bio = rq->bio;
 
-	bio->bi_io_vec->bv_page = page;
+	bvec_set_page(bio->bi_io_vec, page);
 	bio->bi_io_vec->bv_offset = 0;
 	bio->bi_io_vec->bv_len = len;
 
@@ -2893,7 +2893,7 @@ void rq_flush_dcache_pages(struct request *rq)
 	struct bio_vec bvec;
 
 	rq_for_each_segment(bvec, rq, iter)
-		flush_dcache_page(bvec.bv_page);
+		flush_dcache_page(bvec_page(&bvec));
 }
 EXPORT_SYMBOL_GPL(rq_flush_dcache_pages);
 #endif

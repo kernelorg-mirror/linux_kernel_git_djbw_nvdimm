@@ -26,6 +26,16 @@ struct bio_vec {
 	unsigned int	bv_offset;
 };
 
+static inline struct page *bvec_page(const struct bio_vec *bvec)
+{
+	return bvec->bv_page;
+}
+
+static inline void bvec_set_page(struct bio_vec *bvec, struct page *page)
+{
+	bvec->bv_page = page;
+}
+
 #ifdef CONFIG_BLOCK
 
 struct bvec_iter {

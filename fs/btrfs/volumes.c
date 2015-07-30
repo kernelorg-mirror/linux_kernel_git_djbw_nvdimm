@@ -5947,7 +5947,7 @@ again:
 		return -ENOMEM;
 
 	while (bvec <= (first_bio->bi_io_vec + first_bio->bi_vcnt - 1)) {
-		if (bio_add_page(bio, bvec->bv_page, bvec->bv_len,
+		if (bio_add_page(bio, bvec_page(bvec), bvec->bv_len,
 				 bvec->bv_offset) < bvec->bv_len) {
 			u64 len = bio->bi_iter.bi_size;
 

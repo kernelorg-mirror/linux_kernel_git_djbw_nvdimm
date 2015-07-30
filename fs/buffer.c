@@ -3011,7 +3011,7 @@ void guard_bio_eod(int rw, struct bio *bio)
 
 	/* ..and clear the end of the buffer for reads */
 	if ((rw & RW_MASK) == READ) {
-		zero_user(bvec->bv_page, bvec->bv_offset + bvec->bv_len,
+		zero_user(bvec_page(bvec), bvec->bv_offset + bvec->bv_len,
 				truncated_bytes);
 	}
 }
@@ -3046,7 +3046,7 @@ static int submit_bh_wbc(int rw, struct buffer_head *bh,
 
 	bio->bi_iter.bi_sector = bh->b_blocknr * (bh->b_size >> 9);
 	bio->bi_bdev = bh->b_bdev;
-	bio->bi_io_vec[0].bv_page = bh->b_page;
+	bvec_set_page(&bio->bi_io_vec[0], bh->b_page);
 	bio->bi_io_vec[0].bv_len = bh->b_size;
 	bio->bi_io_vec[0].bv_offset = bh_offset(bh);
 

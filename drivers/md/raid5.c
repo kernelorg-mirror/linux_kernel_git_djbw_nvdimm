@@ -1027,7 +1027,7 @@ again:
 
 			if (test_bit(R5_SkipCopy, &sh->dev[i].flags))
 				WARN_ON(test_bit(R5_UPTODATE, &sh->dev[i].flags));
-			sh->dev[i].vec.bv_page = sh->dev[i].page;
+			bvec_set_page(&sh->dev[i].vec, sh->dev[i].page);
 			bi->bi_vcnt = 1;
 			bi->bi_io_vec[0].bv_len = STRIPE_SIZE;
 			bi->bi_io_vec[0].bv_offset = 0;
@@ -1076,7 +1076,7 @@ again:
 						  + rrdev->data_offset);
 			if (test_bit(R5_SkipCopy, &sh->dev[i].flags))
 				WARN_ON(test_bit(R5_UPTODATE, &sh->dev[i].flags));
-			sh->dev[i].rvec.bv_page = sh->dev[i].page;
+			bvec_set_page(&sh->dev[i].rvec, sh->dev[i].page);
 			rbi->bi_vcnt = 1;
 			rbi->bi_io_vec[0].bv_len = STRIPE_SIZE;
 			rbi->bi_io_vec[0].bv_offset = 0;
@@ -1150,7 +1150,7 @@ async_copy_data(int frombio, struct bio *bio, struct page **page,
 
 		if (clen > 0) {
 			b_offset += bvl.bv_offset;
-			bio_page = bvl.bv_page;
+			bio_page = bvec_page(&bvl);
 			if (frombio) {
 				if (sh->raid_conf->skip_copy &&
 				    b_offset == 0 && page_offset == 0 &&

@@ -208,7 +208,7 @@ csum_failed:
 		 * checked so the end_io handlers know about it
 		 */
 		bio_for_each_segment_all(bvec, cb->orig_bio, i)
-			SetPageChecked(bvec->bv_page);
+			SetPageChecked(bvec_page(bvec));
 
 		bio_endio(cb->orig_bio, 0);
 	}
@@ -459,7 +459,7 @@ static noinline int add_ra_bio_pages(struct inode *inode,
 	u64 end;
 	int misses = 0;
 
-	page = cb->orig_bio->bi_io_vec[cb->orig_bio->bi_vcnt - 1].bv_page;
+	page = bvec_page(&cb->orig_bio->bi_io_vec[cb->orig_bio->bi_vcnt - 1]);
 	last_offset = (page_offset(page) + PAGE_CACHE_SIZE);
 	em_tree = &BTRFS_I(inode)->extent_tree;
 	tree = &BTRFS_I(inode)->io_tree;
@@ -592,7 +592,7 @@ int btrfs_submit_compressed_read(struct inode *inode, struct bio *bio,
 	/* we need the actual starting offset of this extent in the file */
 	read_lock(&em_tree->lock);
 	em = lookup_extent_mapping(em_tree,
-				   page_offset(bio->bi_io_vec->bv_page),
+				   page_offset(bvec_page(bio->bi_io_vec)),
 				   PAGE_CACHE_SIZE);
 	read_unlock(&em_tree->lock);
 	if (!em)
@@ -986,7 +986,7 @@ int btrfs_decompress_buf2page(char *buf, unsigned long buf_start,
 	unsigned long working_bytes = total_out - buf_start;
 	unsigned long bytes;
 	char *kaddr;
-	struct page *page_out = bvec[*pg_index].bv_page;
+	struct page *page_out = bvec_page(&bvec[*pg_index]);
 
 	/*
 	 * start byte is the first byte of the page we're currently
@@ -1031,7 +1031,7 @@ int btrfs_decompress_buf2page(char *buf, unsigned long buf_start,
 			if (*pg_index >= vcnt)
 				return 0;
 
-			page_out = bvec[*pg_index].bv_page;
+			page_out = bvec_page(&bvec[*pg_index]);
 			*pg_offset = 0;
 			start_byte = page_offset(page_out) - disk_start;
 
@@ -1071,7 +1071,7 @@ void btrfs_clear_biovec_end(struct bio_vec *bvec, int vcnt,
 				   unsigned long pg_offset)
 {
 	while (pg_index < vcnt) {
-		struct page *page = bvec[pg_index].bv_page;
+		struct page *page = bvec_page(&bvec[pg_index]);
 		unsigned long off = bvec[pg_index].bv_offset;
 		unsigned long len = bvec[pg_index].bv_len;
 

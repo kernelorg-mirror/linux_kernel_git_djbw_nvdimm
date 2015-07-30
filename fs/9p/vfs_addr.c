@@ -171,7 +171,7 @@ static int v9fs_vfs_writepage_locked(struct page *page)
 	else
 		len = PAGE_CACHE_SIZE;
 
-	bvec.bv_page = page;
+	bvec_set_page(&bvec, page);
 	bvec.bv_offset = 0;
 	bvec.bv_len = len;
 	iov_iter_bvec(&from, ITER_BVEC | WRITE, &bvec, 1, len);

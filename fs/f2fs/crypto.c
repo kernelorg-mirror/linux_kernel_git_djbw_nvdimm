@@ -155,7 +155,7 @@ static void completion_pages(struct work_struct *work)
 	int i;
 
 	bio_for_each_segment_all(bv, bio, i) {
-		struct page *page = bv->bv_page;
+		struct page *page = bvec_page(bv);
 		int ret = f2fs_decrypt(ctx, page);
 
 		if (ret) {

@@ -300,7 +300,7 @@ skb_fillup(struct sk_buff *skb, struct bio *bio, struct bvec_iter iter)
 	struct bio_vec bv;
 
 	__bio_for_each_segment(bv, bio, iter, iter)
-		skb_fill_page_desc(skb, frag++, bv.bv_page,
+		skb_fill_page_desc(skb, frag++, bvec_page(&bv),
 				   bv.bv_offset, bv.bv_len);
 }
 
@@ -874,7 +874,7 @@ bio_pageinc(struct bio *bio)
 		/* Non-zero page count for non-head members of
 		 * compound pages is no longer allowed by the kernel.
 		 */
-		page = compound_head(bv.bv_page);
+		page = compound_head(bvec_page(&bv));
 		atomic_inc(&page->_count);
 	}
 }
@@ -887,7 +887,7 @@ bio_pagedec(struct bio *bio)
 	struct bvec_iter iter;
 
 	bio_for_each_segment(bv, bio, iter) {
-		page = compound_head(bv.bv_page);
+		page = compound_head(bvec_page(&bv));
 		atomic_dec(&page->_count);
 	}
 }
@@ -1092,7 +1092,7 @@ bvcpy(struct sk_buff *skb, struct bio *bio, struct bvec_iter iter, long cnt)
 	iter.bi_size = cnt;
 
 	__bio_for_each_segment(bv, bio, iter, iter) {
-		char *p = page_address(bv.bv_page) + bv.bv_offset;
+		char *p = page_address(bvec_page(&bv)) + bv.bv_offset;
 		skb_copy_bits(skb, soff, p, bv.bv_len);
 		soff += bv.bv_len;
 	}

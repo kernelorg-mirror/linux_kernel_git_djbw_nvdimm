@@ -48,7 +48,7 @@ static void mpage_end_io(struct bio *bio, int err)
 	int i;
 
 	bio_for_each_segment_all(bv, bio, i) {
-		struct page *page = bv->bv_page;
+		struct page *page = bvec_page(bv);
 		page_endio(page, bio_data_dir(bio), err);
 	}
 

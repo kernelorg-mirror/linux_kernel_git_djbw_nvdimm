@@ -221,7 +221,7 @@ static int do_bio_lustrebacked(struct lloop_device *lo, struct bio *head)
 			BUG_ON(bvec.bv_offset != 0);
 			BUG_ON(bvec.bv_len != PAGE_CACHE_SIZE);
 
-			pages[page_count] = bvec.bv_page;
+			pages[page_count] = bvec_page(&bvec);
 			offsets[page_count] = offset;
 			page_count++;
 			offset += bvec.bv_len;

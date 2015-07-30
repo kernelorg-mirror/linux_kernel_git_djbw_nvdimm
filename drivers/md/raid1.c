@@ -134,8 +134,8 @@ static void * r1buf_pool_alloc(gfp_t gfp_flags, void *data)
 	if (!test_bit(MD_RECOVERY_REQUESTED, &pi->mddev->recovery)) {
 		for (i=0; i<RESYNC_PAGES ; i++)
 			for (j=1; j<pi->raid_disks; j++)
-				r1_bio->bios[j]->bi_io_vec[i].bv_page =
-					r1_bio->bios[0]->bi_io_vec[i].bv_page;
+				bvec_set_page(&r1_bio->bios[j]->bi_io_vec[i],
+					      bvec_page(&r1_bio->bios[0]->bi_io_vec[i]));
 	}
 
 	r1_bio->master_bio = NULL;
@@ -147,7 +147,7 @@ out_free_pages:
 		struct bio_vec *bv;
 
 		bio_for_each_segment_all(bv, r1_bio->bios[j], i)
-			__free_page(bv->bv_page);
+			__free_page(bvec_page(bv));
 	}
 
 out_free_bio:
@@ -166,9 +166,9 @@ static void r1buf_pool_free(void *__r1_bio, void *data)
 	for (i = 0; i < RESYNC_PAGES; i++)
 		for (j = pi->raid_disks; j-- ;) {
 			if (j == 0 ||
-			    r1bio->bios[j]->bi_io_vec[i].bv_page !=
-			    r1bio->bios[0]->bi_io_vec[i].bv_page)
-				safe_put_page(r1bio->bios[j]->bi_io_vec[i].bv_page);
+			    bvec_page(&r1bio->bios[j]->bi_io_vec[i]) !=
+			    bvec_page(&r1bio->bios[0]->bi_io_vec[i]))
+				safe_put_page(bvec_page(&r1bio->bios[j]->bi_io_vec[i]));
 		}
 	for (i=0 ; i < pi->raid_disks; i++)
 		bio_put(r1bio->bios[i]);
@@ -369,7 +369,7 @@ static void close_write(struct r1bio *r1_bio)
 		/* free extra copy of the data pages */
 		int i = r1_bio->behind_page_count;
 		while (i--)
-			safe_put_page(r1_bio->behind_bvecs[i].bv_page);
+			safe_put_page(bvec_page(&r1_bio->behind_bvecs[i]));
 		kfree(r1_bio->behind_bvecs);
 		r1_bio->behind_bvecs = NULL;
 	}
@@ -1010,13 +1010,13 @@ static void alloc_behind_pages(struct bio *bio, struct r1bio *r1_bio)
 
 	bio_for_each_segment_all(bvec, bio, i) {
 		bvecs[i] = *bvec;
-		bvecs[i].bv_page = alloc_page(GFP_NOIO);
-		if (unlikely(!bvecs[i].bv_page))
+		bvec_set_page(&bvecs[i], alloc_page(GFP_NOIO));
+		if (unlikely(!bvec_page(&bvecs[i])))
 			goto do_sync_io;
-		memcpy(kmap(bvecs[i].bv_page) + bvec->bv_offset,
-		       kmap(bvec->bv_page) + bvec->bv_offset, bvec->bv_len);
-		kunmap(bvecs[i].bv_page);
-		kunmap(bvec->bv_page);
+		memcpy(kmap(bvec_page(&bvecs[i])) + bvec->bv_offset,
+		       kmap(bvec_page(bvec)) + bvec->bv_offset, bvec->bv_len);
+		kunmap(bvec_page(&bvecs[i]));
+		kunmap(bvec_page(bvec));
 	}
 	r1_bio->behind_bvecs = bvecs;
 	r1_bio->behind_page_count = bio->bi_vcnt;
@@ -1025,8 +1025,8 @@ static void alloc_behind_pages(struct bio *bio, struct r1bio *r1_bio)
 
 do_sync_io:
 	for (i = 0; i < bio->bi_vcnt; i++)
-		if (bvecs[i].bv_page)
-			put_page(bvecs[i].bv_page);
+		if (bvec_page(&bvecs[i]))
+			put_page(bvec_page(&bvecs[i]));
 	kfree(bvecs);
 	pr_debug("%dB behind alloc failed, doing sync I/O\n",
 		 bio->bi_iter.bi_size);
@@ -1398,7 +1398,8 @@ read_again:
 			 * We trimmed the bio, so _all is legit
 			 */
 			bio_for_each_segment_all(bvec, mbio, j)
-				bvec->bv_page = r1_bio->behind_bvecs[j].bv_page;
+				bvec_set_page(bvec,
+					      bvec_page(&r1_bio->behind_bvecs[j]));
 			if (test_bit(WriteMostly, &conf->mirrors[i].rdev->flags))
 				atomic_inc(&r1_bio->behind_remaining);
 		}
@@ -1862,7 +1863,7 @@ static int fix_sync_read_error(struct r1bio *r1_bio)
 				 */
 				rdev = conf->mirrors[d].rdev;
 				if (sync_page_io(rdev, sect, s<<9,
-						 bio->bi_io_vec[idx].bv_page,
+						 bvec_page(&bio->bi_io_vec[idx]),
 						 READ, false)) {
 					success = 1;
 					break;
@@ -1918,7 +1919,7 @@ static int fix_sync_read_error(struct r1bio *r1_bio)
 				continue;
 			rdev = conf->mirrors[d].rdev;
 			if (r1_sync_page_io(rdev, sect, s,
-					    bio->bi_io_vec[idx].bv_page,
+					    bvec_page(&bio->bi_io_vec[idx]),
 					    WRITE) == 0) {
 				r1_bio->bios[d]->bi_end_io = NULL;
 				rdev_dec_pending(rdev, mddev);
@@ -1933,7 +1934,7 @@ static int fix_sync_read_error(struct r1bio *r1_bio)
 				continue;
 			rdev = conf->mirrors[d].rdev;
 			if (r1_sync_page_io(rdev, sect, s,
-					    bio->bi_io_vec[idx].bv_page,
+					    bvec_page(&bio->bi_io_vec[idx]),
 					    READ) != 0)
 				atomic_add(s, &rdev->corrected_errors);
 		}
@@ -2017,8 +2018,8 @@ static void process_checks(struct r1bio *r1_bio)
 		if (uptodate) {
 			for (j = vcnt; j-- ; ) {
 				struct page *p, *s;
-				p = pbio->bi_io_vec[j].bv_page;
-				s = sbio->bi_io_vec[j].bv_page;
+				p = bvec_page(&pbio->bi_io_vec[j]);
+				s = bvec_page(&sbio->bi_io_vec[j]);
 				if (memcmp(page_address(p),
 					   page_address(s),
 					   sbio->bi_io_vec[j].bv_len))
@@ -2227,7 +2228,7 @@ static int narrow_write_error(struct r1bio *r1_bio, int i)
 			unsigned vcnt = r1_bio->behind_page_count;
 			struct bio_vec *vec = r1_bio->behind_bvecs;
 
-			while (!vec->bv_page) {
+			while (!bvec_page(vec)) {
 				vec++;
 				vcnt--;
 			}
@@ -2701,10 +2702,11 @@ static sector_t sync_request(struct mddev *mddev, sector_t sector_nr, int *skipp
 		for (i = 0 ; i < conf->raid_disks * 2; i++) {
 			bio = r1_bio->bios[i];
 			if (bio->bi_end_io) {
-				page = bio->bi_io_vec[bio->bi_vcnt].bv_page;
+				page = bvec_page(&bio->bi_io_vec[bio->bi_vcnt]);
 				if (bio_add_page(bio, page, len, 0) == 0) {
 					/* stop here */
-					bio->bi_io_vec[bio->bi_vcnt].bv_page = page;
+					bvec_set_page(&bio->bi_io_vec[bio->bi_vcnt],
+						      page);
 					while (i > 0) {
 						i--;
 						bio = r1_bio->bios[i];

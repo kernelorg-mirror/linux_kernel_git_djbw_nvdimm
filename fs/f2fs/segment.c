@@ -1395,14 +1395,13 @@ static inline bool is_merged_page(struct f2fs_sb_info *sbi,
 
 	bio_for_each_segment_all(bvec, io->bio, i) {
 
-		if (bvec->bv_page->mapping) {
-			target = bvec->bv_page;
+		if (bvec_page(bvec)->mapping) {
+			target = bvec_page(bvec);
 		} else {
 			struct f2fs_crypto_ctx *ctx;
 
 			/* encrypted page */
-			ctx = (struct f2fs_crypto_ctx *)page_private(
-								bvec->bv_page);
+			ctx = (struct f2fs_crypto_ctx *)page_private(bvec_page(bvec));
 			target = ctx->w.control_page;
 		}
 

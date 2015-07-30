@@ -33,7 +33,7 @@ static struct bio *get_swap_bio(gfp_t gfp_flags,
 	if (bio) {
 		bio->bi_iter.bi_sector = map_swap_page(page, &bio->bi_bdev);
 		bio->bi_iter.bi_sector <<= PAGE_SHIFT - 9;
-		bio->bi_io_vec[0].bv_page = page;
+		bvec_set_page(&bio->bi_io_vec[0], page);
 		bio->bi_io_vec[0].bv_len = PAGE_SIZE;
 		bio->bi_io_vec[0].bv_offset = 0;
 		bio->bi_vcnt = 1;
@@ -46,7 +46,7 @@ static struct bio *get_swap_bio(gfp_t gfp_flags,
 void end_swap_bio_write(struct bio *bio, int err)
 {
 	const int uptodate = test_bit(BIO_UPTODATE, &bio->bi_flags);
-	struct page *page = bio->bi_io_vec[0].bv_page;
+	struct page *page = bvec_page(&bio->bi_io_vec[0]);
 
 	if (!uptodate) {
 		SetPageError(page);
@@ -72,7 +72,7 @@ void end_swap_bio_write(struct bio *bio, int err)
 static void end_swap_bio_read(struct bio *bio, int err)
 {
 	const int uptodate = test_bit(BIO_UPTODATE, &bio->bi_flags);
-	struct page *page = bio->bi_io_vec[0].bv_page;
+	struct page *page = bvec_page(&bio->bi_io_vec[0]);
 
 	if (!uptodate) {
 		SetPageError(page);

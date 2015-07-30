@@ -946,7 +946,7 @@ static void drbd_bm_endio(struct bio *bio, int error)
 	struct drbd_bm_aio_ctx *ctx = bio->bi_private;
 	struct drbd_device *device = ctx->device;
 	struct drbd_bitmap *b = device->bitmap;
-	unsigned int idx = bm_page_to_idx(bio->bi_io_vec[0].bv_page);
+	unsigned int idx = bm_page_to_idx(bvec_page(&bio->bi_io_vec[0]));
 	int uptodate = bio_flagged(bio, BIO_UPTODATE);
 
 
@@ -979,7 +979,8 @@ static void drbd_bm_endio(struct bio *bio, int error)
 	bm_page_unlock_io(device, idx);
 
 	if (ctx->flags & BM_AIO_COPY_PAGES)
-		mempool_free(bio->bi_io_vec[0].bv_page, drbd_md_io_page_pool);
+		mempool_free(bvec_page(&bio->bi_io_vec[0]),
+			     drbd_md_io_page_pool);
 
 	bio_put(bio);
 

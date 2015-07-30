@@ -43,9 +43,9 @@ static void bio_csum(struct bio *bio, struct bkey *k)
 	uint64_t csum = 0;
 
 	bio_for_each_segment(bv, bio, iter) {
-		void *d = kmap(bv.bv_page) + bv.bv_offset;
+		void *d = kmap(bvec_page(&bv)) + bv.bv_offset;
 		csum = bch_crc64_update(csum, d, bv.bv_len);
-		kunmap(bv.bv_page);
+		kunmap(bvec_page(&bv));
 	}
 
 	k->ptr[KEY_PTRS(k)] = csum & (~0ULL >> 1);
@@ -698,7 +698,7 @@ static void cached_dev_cache_miss_done(struct closure *cl)
 		struct bio_vec *bv;
 
 		bio_for_each_segment_all(bv, s->iop.bio, i)
-			__free_page(bv->bv_page);
+			__free_page(bvec_page(bv));
 	}
 
 	cached_dev_bio_complete(cl);

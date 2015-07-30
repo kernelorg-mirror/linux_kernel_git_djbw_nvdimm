@@ -174,7 +174,7 @@ static int page_zero_filled(void *ptr)
 
 static void handle_zero_page(struct bio_vec *bvec)
 {
-	struct page *page = bvec->bv_page;
+	struct page *page = bvec_page(bvec);
 	void *user_mem;
 
 	user_mem = kmap_atomic(page);
@@ -601,7 +601,7 @@ static int zram_bvec_read(struct zram *zram, struct bio_vec *bvec,
 	struct page *page;
 	unsigned char *user_mem, *uncmem = NULL;
 	struct zram_meta *meta = zram->meta;
-	page = bvec->bv_page;
+	page = bvec_page(bvec);
 
 	bit_spin_lock(ZRAM_ACCESS, &meta->table[index].value);
 	if (unlikely(!meta->table[index].handle) ||
@@ -656,7 +656,7 @@ static int zram_bvec_write(struct zram *zram, struct bio_vec *bvec, u32 index,
 	struct zcomp_strm *zstrm = NULL;
 	unsigned long alloced_pages;
 
-	page = bvec->bv_page;
+	page = bvec_page(bvec);
 	if (is_partial_io(bvec)) {
 		/*
 		 * This is a partial IO. We need to read the full page
@@ -865,7 +865,7 @@ static void __zram_make_request(struct zram *zram, struct bio *bio)
 			 */
 			struct bio_vec bv;
 
-			bv.bv_page = bvec.bv_page;
+			bvec_set_page(&bv, bvec_page(&bvec));
 			bv.bv_len = max_transfer_size;
 			bv.bv_offset = bvec.bv_offset;
 
@@ -952,7 +952,7 @@ static int zram_rw_page(struct block_device *bdev, sector_t sector,
 	index = sector >> SECTORS_PER_PAGE_SHIFT;
 	offset = sector & (SECTORS_PER_PAGE - 1) << SECTOR_SHIFT;
 
-	bv.bv_page = page;
+	bvec_set_page(&bv, page);
 	bv.bv_len = PAGE_SIZE;
 	bv.bv_offset = 0;
 

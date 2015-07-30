@@ -90,7 +90,7 @@ static int nd_blk_rw_integrity(struct nd_blk_device *blk_dev,
 		 */
 
 		cur_len = min(len, bv.bv_len);
-		iobuf = kmap_atomic(bv.bv_page);
+		iobuf = kmap_atomic(bvec_page(&bv));
 		err = ndbr->do_io(ndbr, dev_offset, iobuf + bv.bv_offset,
 				cur_len, rw);
 		kunmap_atomic(iobuf);
@@ -192,7 +192,7 @@ static void nd_blk_make_request(struct request_queue *q, struct bio *bio)
 		unsigned int len = bvec.bv_len;
 
 		BUG_ON(len > PAGE_SIZE);
-		err = nd_blk_do_bvec(blk_dev, bip, bvec.bv_page, len,
+		err = nd_blk_do_bvec(blk_dev, bip, bvec_page(&bvec), len,
 					bvec.bv_offset, rw, iter.bi_sector);
 		if (err) {
 			dev_info(&blk_dev->nsblk->common.dev,

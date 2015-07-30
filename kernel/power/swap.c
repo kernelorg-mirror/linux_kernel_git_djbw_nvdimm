@@ -231,7 +231,7 @@ static void hib_end_io(struct bio *bio, int error)
 {
 	struct hib_bio_batch *hb = bio->bi_private;
 	const int uptodate = test_bit(BIO_UPTODATE, &bio->bi_flags);
-	struct page *page = bio->bi_io_vec[0].bv_page;
+	struct page *page = bvec_page(&bio->bi_io_vec[0]);
 
 	if (!uptodate || error) {
 		printk(KERN_ALERT "Read-error on swap-device (%u:%u:%Lu)\n",

@@ -7699,7 +7699,7 @@ static void btrfs_retry_endio_nocsum(struct bio *bio, int err)
 
 	done->uptodate = 1;
 	bio_for_each_segment_all(bvec, bio, i)
-		clean_io_failure(done->inode, done->start, bvec->bv_page, 0);
+		clean_io_failure(done->inode, done->start, bvec_page(bvec), 0);
 end:
 	complete(&done->done);
 	bio_put(bio);
@@ -7723,7 +7723,8 @@ try_again:
 		done.start = start;
 		init_completion(&done.done);
 
-		ret = dio_read_error(inode, &io_bio->bio, bvec->bv_page, start,
+		ret = dio_read_error(inode, &io_bio->bio, bvec_page(bvec),
+				     start,
 				     start + bvec->bv_len - 1,
 				     io_bio->mirror_num,
 				     btrfs_retry_endio_nocsum, &done);
@@ -7758,11 +7759,11 @@ static void btrfs_retry_endio(struct bio *bio, int err)
 	uptodate = 1;
 	bio_for_each_segment_all(bvec, bio, i) {
 		ret = __readpage_endio_check(done->inode, io_bio, i,
-					     bvec->bv_page, 0,
+					     bvec_page(bvec), 0,
 					     done->start, bvec->bv_len);
 		if (!ret)
 			clean_io_failure(done->inode, done->start,
-					 bvec->bv_page, 0);
+					 bvec_page(bvec), 0);
 		else
 			uptodate = 0;
 	}
@@ -7788,7 +7789,8 @@ static int __btrfs_subio_endio_read(struct inode *inode,
 	done.inode = inode;
 
 	bio_for_each_segment_all(bvec, &io_bio->bio, i) {
-		ret = __readpage_endio_check(inode, io_bio, i, bvec->bv_page,
+		ret = __readpage_endio_check(inode, io_bio, i,
+					     bvec_page(bvec),
 					     0, start, bvec->bv_len);
 		if (likely(!ret))
 			goto next;
@@ -7797,7 +7799,8 @@ try_again:
 		done.start = start;
 		init_completion(&done.done);
 
-		ret = dio_read_error(inode, &io_bio->bio, bvec->bv_page, start,
+		ret = dio_read_error(inode, &io_bio->bio, bvec_page(bvec),
+				     start,
 				     start + bvec->bv_len - 1,
 				     io_bio->mirror_num,
 				     btrfs_retry_endio, &done);
@@ -8090,7 +8093,7 @@ static int btrfs_submit_direct_hook(int rw, struct btrfs_dio_private *dip,
 
 	while (bvec <= (orig_bio->bi_io_vec + orig_bio->bi_vcnt - 1)) {
 		if (map_length < submit_len + bvec->bv_len ||
-		    bio_add_page(bio, bvec->bv_page, bvec->bv_len,
+		    bio_add_page(bio, bvec_page(bvec), bvec->bv_len,
 				 bvec->bv_offset) < bvec->bv_len) {
 			/*
 			 * inc the count before we submit the bio so

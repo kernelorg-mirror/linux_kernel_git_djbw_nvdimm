@@ -953,7 +953,7 @@ static int btt_rw_integrity(struct btt *btt, struct bio_integrity_payload *bip,
 		 */
 
 		cur_len = min(len, bv.bv_len);
-		mem = kmap_atomic(bv.bv_page);
+		mem = kmap_atomic(bvec_page(&bv));
 		if (rw)
 			ret = arena_write_bytes(arena, meta_nsoff,
 					mem + bv.bv_offset, cur_len);
@@ -1205,8 +1205,9 @@ static void btt_make_request(struct request_queue *q, struct bio *bio)
 		BUG_ON(len < btt->sector_size);
 		BUG_ON(len % btt->sector_size);
 
-		err = btt_do_bvec(btt, bip, bvec.bv_page, len, bvec.bv_offset,
-				rw, iter.bi_sector);
+		err = btt_do_bvec(btt, bip, bvec_page(&bvec), len,
+				  bvec.bv_offset,
+				  rw, iter.bi_sector);
 		if (err) {
 			dev_info(&btt->nd_btt->dev,
 					"io error in %s sector %lld, len %d,\n",

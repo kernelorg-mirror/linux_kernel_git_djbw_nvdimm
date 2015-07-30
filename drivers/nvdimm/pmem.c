@@ -71,7 +71,8 @@ static void pmem_make_request(struct request_queue *q, struct bio *bio)
 
 	do_acct = nd_iostat_start(bio, &start);
 	bio_for_each_segment(bvec, bio, iter)
-		pmem_do_bvec(pmem, bvec.bv_page, bvec.bv_len, bvec.bv_offset,
+		pmem_do_bvec(pmem, bvec_page(&bvec), bvec.bv_len,
+				bvec.bv_offset,
 				bio_data_dir(bio), iter.bi_sector);
 	if (do_acct)
 		nd_iostat_end(bio, start);

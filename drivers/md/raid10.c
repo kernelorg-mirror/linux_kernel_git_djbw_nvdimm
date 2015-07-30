@@ -181,16 +181,16 @@ static void * r10buf_pool_alloc(gfp_t gfp_flags, void *data)
 				/* we can share bv_page's during recovery
 				 * and reshape */
 				struct bio *rbio = r10_bio->devs[0].bio;
-				page = rbio->bi_io_vec[i].bv_page;
+				page = bvec_page(&rbio->bi_io_vec[i]);
 				get_page(page);
 			} else
 				page = alloc_page(gfp_flags);
 			if (unlikely(!page))
 				goto out_free_pages;
 
-			bio->bi_io_vec[i].bv_page = page;
+			bvec_set_page(&bio->bi_io_vec[i], page);
 			if (rbio)
-				rbio->bi_io_vec[i].bv_page = page;
+				bvec_set_page(&rbio->bi_io_vec[i], page);
 		}
 	}
 
@@ -198,10 +198,10 @@ static void * r10buf_pool_alloc(gfp_t gfp_flags, void *data)
 
 out_free_pages:
 	for ( ; i > 0 ; i--)
-		safe_put_page(bio->bi_io_vec[i-1].bv_page);
+		safe_put_page(bvec_page(&bio->bi_io_vec[i - 1]));
 	while (j--)
 		for (i = 0; i < RESYNC_PAGES ; i++)
-			safe_put_page(r10_bio->devs[j].bio->bi_io_vec[i].bv_page);
+			safe_put_page(bvec_page(&r10_bio->devs[j].bio->bi_io_vec[i]));
 	j = 0;
 out_free_bio:
 	for ( ; j < nalloc; j++) {
@@ -225,8 +225,8 @@ static void r10buf_pool_free(void *__r10_bio, void *data)
 		struct bio *bio = r10bio->devs[j].bio;
 		if (bio) {
 			for (i = 0; i < RESYNC_PAGES; i++) {
-				safe_put_page(bio->bi_io_vec[i].bv_page);
-				bio->bi_io_vec[i].bv_page = NULL;
+				safe_put_page(bvec_page(&bio->bi_io_vec[i]));
+				bvec_set_page(&bio->bi_io_vec[i], NULL);
 			}
 			bio_put(bio);
 		}
@@ -2074,8 +2074,8 @@ static void sync_request_write(struct mddev *mddev, struct r10bio *r10_bio)
 				int len = PAGE_SIZE;
 				if (sectors < (len / 512))
 					len = sectors * 512;
-				if (memcmp(page_address(fbio->bi_io_vec[j].bv_page),
-					   page_address(tbio->bi_io_vec[j].bv_page),
+				if (memcmp(page_address(bvec_page(&fbio->bi_io_vec[j])),
+					   page_address(bvec_page(&tbio->bi_io_vec[j])),
 					   len))
 					break;
 				sectors -= len/512;
@@ -2181,7 +2181,7 @@ static void fix_recovery_read_error(struct r10bio *r10_bio)
 		ok = sync_page_io(rdev,
 				  addr,
 				  s << 9,
-				  bio->bi_io_vec[idx].bv_page,
+				  bvec_page(&bio->bi_io_vec[idx]),
 				  READ, false);
 		if (ok) {
 			rdev = conf->mirrors[dw].rdev;
@@ -2189,7 +2189,7 @@ static void fix_recovery_read_error(struct r10bio *r10_bio)
 			ok = sync_page_io(rdev,
 					  addr,
 					  s << 9,
-					  bio->bi_io_vec[idx].bv_page,
+					  bvec_page(&bio->bi_io_vec[idx]),
 					  WRITE, false);
 			if (!ok) {
 				set_bit(WriteErrorSeen, &rdev->flags);
@@ -3345,12 +3345,12 @@ static sector_t sync_request(struct mddev *mddev, sector_t sector_nr,
 			break;
 		for (bio= biolist ; bio ; bio=bio->bi_next) {
 			struct bio *bio2;
-			page = bio->bi_io_vec[bio->bi_vcnt].bv_page;
+			page = bvec_page(&bio->bi_io_vec[bio->bi_vcnt]);
 			if (bio_add_page(bio, page, len, 0))
 				continue;
 
 			/* stop here */
-			bio->bi_io_vec[bio->bi_vcnt].bv_page = page;
+			bvec_set_page(&bio->bi_io_vec[bio->bi_vcnt], page);
 			for (bio2 = biolist;
 			     bio2 && bio2 != bio;
 			     bio2 = bio2->bi_next) {
@@ -4423,7 +4423,7 @@ read_more:
 
 	nr_sectors = 0;
 	for (s = 0 ; s < max_sectors; s += PAGE_SIZE >> 9) {
-		struct page *page = r10_bio->devs[0].bio->bi_io_vec[s/(PAGE_SIZE>>9)].bv_page;
+		struct page *page = bvec_page(&r10_bio->devs[0].bio->bi_io_vec[s / (PAGE_SIZE >> 9)]);
 		int len = (max_sectors - s) << 9;
 		if (len > PAGE_SIZE)
 			len = PAGE_SIZE;
@@ -4581,7 +4581,7 @@ static int handle_reshape_read_error(struct mddev *mddev,
 			success = sync_page_io(rdev,
 					       addr,
 					       s << 9,
-					       bvec[idx].bv_page,
+					       bvec_page(&bvec[idx]),
 					       READ, false);
 			if (success)
 				break;
