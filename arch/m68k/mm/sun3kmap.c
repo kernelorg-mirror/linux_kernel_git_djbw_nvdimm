@@ -116,6 +116,12 @@ void __iomem *__ioremap(unsigned long phys, unsigned long size, int cache)
 }
 EXPORT_SYMBOL(__ioremap);
 
+void *arch_memremap(resource_size_t offset, size_t size, unsigned long flags)
+{
+	return (void __force *) sun3_ioremap(offset, size, SUN3_PAGE_TYPE_IO);
+}
+EXPORT_SYMBOL(arch_memremap);
+
 void iounmap(void __iomem *addr)
 {
 	vfree((void *)(PAGE_MASK & (unsigned long)addr));

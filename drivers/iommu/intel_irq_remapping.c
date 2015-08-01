@@ -408,7 +408,7 @@ static int iommu_load_old_irte(struct intel_iommu *iommu)
 	size     = INTR_REMAP_TABLE_ENTRIES*sizeof(struct irte);
 
 	/* Map the old IR table */
-	old_ir_table = ioremap_cache(irt_phys, size);
+	old_ir_table = memremap(irt_phys, size, MEMREMAP_WB);
 	if (!old_ir_table)
 		return -ENOMEM;
 
@@ -425,6 +425,8 @@ static int iommu_load_old_irte(struct intel_iommu *iommu)
 		if (iommu->ir_table->base[i].present)
 			bitmap_set(iommu->ir_table->bitmap, i, 1);
 	}
+
+	memunmap(old_ir_table);
 
 	return 0;
 }

@@ -35,7 +35,6 @@
   */
 
 #define ARCH_HAS_IOREMAP_WC
-#define ARCH_HAS_IOREMAP_WT
 
 #include <linux/string.h>
 #include <linux/compiler.h>
@@ -180,10 +179,8 @@ static inline unsigned int isa_virt_to_bus(volatile void *address)
  */
 extern void __iomem *ioremap_nocache(resource_size_t offset, unsigned long size);
 extern void __iomem *ioremap_uc(resource_size_t offset, unsigned long size);
-extern void __iomem *ioremap_cache(resource_size_t offset, unsigned long size);
 extern void __iomem *ioremap_prot(resource_size_t offset, unsigned long size,
 				unsigned long prot_val);
-
 /*
  * The default ioremap() behavior is non-cached:
  */
@@ -248,12 +245,7 @@ static inline void flush_write_buffers(void)
 #endif
 }
 
-static inline void __pmem *arch_memremap_pmem(resource_size_t offset,
-	unsigned long size)
-{
-	return (void __force __pmem *) ioremap_cache(offset, size);
-}
-
+unsigned long arch_memremap_pmem_flags(resource_size_t offset, size_t size);
 #endif /* __KERNEL__ */
 
 extern void native_io_delay(void);
@@ -327,7 +319,6 @@ extern void unxlate_dev_mem_ptr(phys_addr_t phys, void *addr);
 extern int ioremap_change_attr(unsigned long vaddr, unsigned long size,
 				enum page_cache_mode pcm);
 extern void __iomem *ioremap_wc(resource_size_t offset, unsigned long size);
-extern void __iomem *ioremap_wt(resource_size_t offset, unsigned long size);
 
 extern bool is_early_ioremap_ptep(pte_t *ptep);
 
