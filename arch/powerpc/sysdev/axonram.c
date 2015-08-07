@@ -43,6 +43,7 @@
 #include <linux/types.h>
 #include <linux/of_device.h>
 #include <linux/of_platform.h>
+#include <linux/kmap_pfn.h>
 
 #include <asm/page.h>
 #include <asm/prom.h>
@@ -141,14 +142,12 @@ axon_ram_make_request(struct request_queue *queue, struct bio *bio)
  */
 static long
 axon_ram_direct_access(struct block_device *device, sector_t sector,
-		       void **kaddr, unsigned long *pfn)
+		       __pfn_t *pfn)
 {
 	struct axon_ram_bank *bank = device->bd_disk->private_data;
 	loff_t offset = (loff_t)sector << AXON_RAM_SECTOR_SHIFT;
 
-	*kaddr = (void *)(bank->ph_addr + offset);
-	*pfn = virt_to_phys(*kaddr) >> PAGE_SHIFT;
-
+	*pfn = phys_to_pfn_t(bank->ph_addr + offset, PFN_DEV);
 	return bank->size - offset;
 }
 
@@ -165,8 +164,12 @@ static int axon_ram_probe(struct platform_device *device)
 {
 	static int axon_ram_bank_id = -1;
 	struct axon_ram_bank *bank;
-	struct resource resource;
+	struct resource *resource;
 	int rc = 0;
+
+	resource = devm_kzalloc(&device->dev, sizeof(*resource), GFP_KERNEL);
+	if (!resource)
+		return -ENOMEM;
 
 	axon_ram_bank_id++;
 
@@ -184,13 +187,13 @@ static int axon_ram_probe(struct platform_device *device)
 
 	bank->device = device;
 
-	if (of_address_to_resource(device->dev.of_node, 0, &resource) != 0) {
+	if (of_address_to_resource(device->dev.of_node, 0, resource) != 0) {
 		dev_err(&device->dev, "Cannot access device tree\n");
 		rc = -EFAULT;
 		goto failed;
 	}
 
-	bank->size = resource_size(&resource);
+	bank->size = resource_size(resource);
 
 	if (bank->size == 0) {
 		dev_err(&device->dev, "No DDR2 memory found for %s%d\n",
@@ -202,7 +205,7 @@ static int axon_ram_probe(struct platform_device *device)
 	dev_info(&device->dev, "Register DDR2 memory device %s%d with %luMB\n",
 			AXON_RAM_DEVICE_NAME, axon_ram_bank_id, bank->size >> 20);
 
-	bank->ph_addr = resource.start;
+	bank->ph_addr = resource->start;
 	bank->io_addr = (unsigned long) ioremap_prot(
 			bank->ph_addr, bank->size, _PAGE_NO_CACHE);
 	if (bank->io_addr == 0) {
@@ -210,6 +213,11 @@ static int axon_ram_probe(struct platform_device *device)
 		rc = -EFAULT;
 		goto failed;
 	}
+
+	rc = devm_register_kmap_pfn_range(&device->dev, resource,
+			(void *) bank->io_addr);
+	if (rc)
+		goto failed;
 
 	bank->disk = alloc_disk(AXON_RAM_MINORS_PER_DISK);
 	if (bank->disk == NULL) {

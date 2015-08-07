@@ -29,7 +29,7 @@ static int dcssblk_open(struct block_device *bdev, fmode_t mode);
 static void dcssblk_release(struct gendisk *disk, fmode_t mode);
 static void dcssblk_make_request(struct request_queue *q, struct bio *bio);
 static long dcssblk_direct_access(struct block_device *bdev, sector_t secnum,
-				 void **kaddr, unsigned long *pfn);
+		__pfn_t *pfn);
 
 static char dcssblk_segments[DCSSBLK_PARM_LEN] = "\0";
 
@@ -520,11 +520,17 @@ static const struct attribute_group *dcssblk_dev_attr_groups[] = {
 static ssize_t
 dcssblk_add_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
 {
+	struct resource *res = devm_kzalloc(dev, sizeof(*res), GFP_KERNEL);
 	int rc, i, j, num_of_segments;
 	struct dcssblk_dev_info *dev_info;
 	struct segment_info *seg_info, *temp;
 	char *local_buf;
 	unsigned long seg_byte_size;
+
+	if (!res) {
+		rc = -ENOMEM;
+		goto out_nobuf;
+	}
 
 	dev_info = NULL;
 	seg_info = NULL;
@@ -652,6 +658,13 @@ dcssblk_add_store(struct device *dev, struct device_attribute *attr, const char 
 	if (rc)
 		goto put_dev;
 
+	res->start = dev_info->start;
+	res->end = dev_info->end - 1;
+	rc = devm_register_kmap_pfn_range(&dev_info->dev, res,
+			(void *) dev_info->start);
+	if (rc)
+		goto put_dev;
+
 	get_device(&dev_info->dev);
 	add_disk(dev_info->gd);
 
@@ -699,6 +712,8 @@ seg_list_del:
 out:
 	kfree(local_buf);
 out_nobuf:
+	if (res)
+		devm_kfree(dev, res);
 	return rc;
 }
 
@@ -879,7 +894,7 @@ fail:
 
 static long
 dcssblk_direct_access (struct block_device *bdev, sector_t secnum,
-			void **kaddr, unsigned long *pfn)
+		__pfn_t *pfn)
 {
 	struct dcssblk_dev_info *dev_info;
 	unsigned long offset, dev_sz;
@@ -889,8 +904,7 @@ dcssblk_direct_access (struct block_device *bdev, sector_t secnum,
 		return -ENODEV;
 	dev_sz = dev_info->end - dev_info->start;
 	offset = secnum * 512;
-	*kaddr = (void *) (dev_info->start + offset);
-	*pfn = virt_to_phys(*kaddr) >> PAGE_SHIFT;
+	*pfn = phys_to_pfn_t(dev_info->start + offset, PFN_DEV);
 
 	return dev_sz - offset;
 }

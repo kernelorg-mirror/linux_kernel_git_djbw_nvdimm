@@ -26,6 +26,7 @@
 #include <linux/sched.h>
 #include <linux/uio.h>
 #include <linux/vmstat.h>
+#include <linux/kmap_pfn.h>
 
 int dax_clear_blocks(struct inode *inode, sector_t block, long size)
 {
@@ -35,13 +36,16 @@ int dax_clear_blocks(struct inode *inode, sector_t block, long size)
 	might_sleep();
 	do {
 		void *addr;
-		unsigned long pfn;
+		__pfn_t pfn;
 		long count;
 
-		count = bdev_direct_access(bdev, sector, &addr, &pfn, size);
+		count = bdev_direct_access(bdev, sector, &pfn, size);
 		if (count < 0)
 			return count;
 		BUG_ON(size < count);
+		addr = kmap_atomic_pfn_t(pfn);
+		if (!addr)
+			return -EIO;
 		while (count > 0) {
 			unsigned pgsz = PAGE_SIZE - offset_in_page(addr);
 			if (pgsz > count)
@@ -57,17 +61,39 @@ int dax_clear_blocks(struct inode *inode, sector_t block, long size)
 			sector += pgsz / 512;
 			cond_resched();
 		}
+		kunmap_atomic_pfn_t(addr);
 	} while (size);
 
 	return 0;
 }
 EXPORT_SYMBOL_GPL(dax_clear_blocks);
 
-static long dax_get_addr(struct buffer_head *bh, void **addr, unsigned blkbits)
+static void *__dax_map_bh(struct buffer_head *bh, unsigned blkbits, __pfn_t *pfn)
 {
-	unsigned long pfn;
 	sector_t sector = bh->b_blocknr << (blkbits - 9);
-	return bdev_direct_access(bh->b_bdev, sector, addr, &pfn, bh->b_size);
+	void *addr;
+	long rc;
+
+	rc = bdev_direct_access(bh->b_bdev, sector, pfn, bh->b_size);
+	if (rc)
+		return ERR_PTR(rc);
+	addr = kmap_atomic_pfn_t(*pfn);
+	if (!addr)
+		return ERR_PTR(-EIO);
+	return addr;
+}
+
+static void *dax_map_bh(struct buffer_head *bh, unsigned blkbits)
+{
+	__pfn_t pfn;
+
+	return __dax_map_bh(bh, blkbits, &pfn);
+}
+
+static void dax_unmap_bh(void *addr)
+{
+	if (!IS_ERR(addr))
+		kunmap_atomic_pfn_t(addr);
 }
 
 static void dax_new_buf(void *addr, unsigned size, unsigned first, loff_t pos,
@@ -106,7 +132,7 @@ static ssize_t dax_io(struct inode *inode, struct iov_iter *iter,
 	loff_t pos = start;
 	loff_t max = start;
 	loff_t bh_max = start;
-	void *addr;
+	void *addr = NULL, *kmap = ERR_PTR(-EIO);
 	bool hole = false;
 
 	if (iov_iter_rw(iter) != WRITE)
@@ -142,9 +168,13 @@ static ssize_t dax_io(struct inode *inode, struct iov_iter *iter,
 				addr = NULL;
 				size = bh->b_size - first;
 			} else {
-				retval = dax_get_addr(bh, &addr, blkbits);
-				if (retval < 0)
+				dax_unmap_bh(kmap);
+				kmap = dax_map_bh(bh, blkbits);
+				if (IS_ERR(kmap)) {
+					retval = PTR_ERR(kmap);
 					break;
+				}
+				addr = kmap;
 				if (buffer_unwritten(bh) || buffer_new(bh))
 					dax_new_buf(addr, retval, first, pos,
 									end);
@@ -167,6 +197,8 @@ static ssize_t dax_io(struct inode *inode, struct iov_iter *iter,
 		pos += len;
 		addr += len;
 	}
+
+	dax_unmap_bh(kmap);
 
 	return (pos == start) ? retval : pos - start;
 }
@@ -261,11 +293,14 @@ static int copy_user_bh(struct page *to, struct buffer_head *bh,
 			unsigned blkbits, unsigned long vaddr)
 {
 	void *vfrom, *vto;
-	if (dax_get_addr(bh, &vfrom, blkbits) < 0)
-		return -EIO;
+
+	vfrom = dax_map_bh(bh, blkbits);
+	if (IS_ERR(vfrom))
+		return PTR_ERR(vfrom);
 	vto = kmap_atomic(to);
 	copy_user_page(vto, vfrom, vaddr, to);
 	kunmap_atomic(vto);
+	dax_unmap_bh(vfrom);
 	return 0;
 }
 
@@ -273,11 +308,10 @@ static int dax_insert_mapping(struct inode *inode, struct buffer_head *bh,
 			struct vm_area_struct *vma, struct vm_fault *vmf)
 {
 	struct address_space *mapping = inode->i_mapping;
-	sector_t sector = bh->b_blocknr << (inode->i_blkbits - 9);
 	unsigned long vaddr = (unsigned long)vmf->virtual_address;
-	void *addr;
-	unsigned long pfn;
 	pgoff_t size;
+	__pfn_t pfn;
+	void *addr;
 	int error;
 
 	i_mmap_lock_read(mapping);
@@ -295,18 +329,17 @@ static int dax_insert_mapping(struct inode *inode, struct buffer_head *bh,
 		goto out;
 	}
 
-	error = bdev_direct_access(bh->b_bdev, sector, &addr, &pfn, bh->b_size);
-	if (error < 0)
-		goto out;
-	if (error < PAGE_SIZE) {
-		error = -EIO;
+	addr = __dax_map_bh(bh, inode->i_blkbits, &pfn);
+	if (IS_ERR(addr)) {
+		error = PTR_ERR(addr);
 		goto out;
 	}
 
 	if (buffer_unwritten(bh) || buffer_new(bh))
 		clear_page(addr);
+	dax_unmap_bh(addr);
 
-	error = vm_insert_mixed(vma, vaddr, pfn);
+	error = vm_insert_mixed(vma, vaddr, __pfn_t_to_pfn(pfn));
 
  out:
 	i_mmap_unlock_read(mapping);
@@ -539,10 +572,12 @@ int dax_zero_page_range(struct inode *inode, loff_t from, unsigned length,
 		return err;
 	if (buffer_written(&bh)) {
 		void *addr;
-		err = dax_get_addr(&bh, &addr, inode->i_blkbits);
-		if (err < 0)
-			return err;
+
+		addr = dax_map_bh(&bh, inode->i_blkbits);
+		if (IS_ERR(addr))
+			return PTR_ERR(addr);
 		memset(addr + offset, 0, length);
+		dax_unmap_bh(addr);
 	}
 
 	return 0;

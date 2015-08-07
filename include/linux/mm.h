@@ -951,6 +951,18 @@ enum {
 #endif
 };
 
+static inline __pfn_t pfn_to_pfn_t(unsigned long pfn, unsigned long flags)
+{
+	__pfn_t pfn_t = { .val = (pfn << PAGE_SHIFT) | (flags & PFN_MASK), };
+
+	return pfn_t;
+}
+
+static inline __pfn_t phys_to_pfn_t(dma_addr_t addr, unsigned long flags)
+{
+	return pfn_to_pfn_t(addr >> PAGE_SHIFT, flags);
+}
+
 static inline bool __pfn_t_has_page(__pfn_t pfn)
 {
 	return (pfn.val & PFN_DEV) == 0;

@@ -307,6 +307,7 @@ config CPM2
 config AXON_RAM
 	tristate "Axon DDR2 memory device driver"
 	depends on PPC_IBM_CELL_BLADE && BLOCK
+	select KMAP_PFN
 	default m
 	help
 	  It registers one block device per Axon's DDR2 memory bank found

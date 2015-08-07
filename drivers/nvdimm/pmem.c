@@ -25,6 +25,8 @@
 #include <linux/slab.h>
 #include <linux/pmem.h>
 #include <linux/nd.h>
+#include <linux/mm.h>
+#include <linux/kmap_pfn.h>
 #include "nd.h"
 
 struct pmem_device {
@@ -92,18 +94,12 @@ static int pmem_rw_page(struct block_device *bdev, sector_t sector,
 }
 
 static long pmem_direct_access(struct block_device *bdev, sector_t sector,
-			      void **kaddr, unsigned long *pfn)
+		__pfn_t *pfn)
 {
 	struct pmem_device *pmem = bdev->bd_disk->private_data;
 	size_t offset = sector << 9;
 
-	if (!pmem)
-		return -ENODEV;
-
-	/* FIXME convert DAX to comprehend that this mapping has a lifetime */
-	*kaddr = (void __force *) pmem->virt_addr + offset;
-	*pfn = (pmem->phys_addr + offset) >> PAGE_SHIFT;
-
+	*pfn = phys_to_pfn_t(pmem->phys_addr + offset, PFN_DEV);
 	return pmem->size - offset;
 }
 
@@ -149,10 +145,17 @@ static void pmem_detach_disk(struct pmem_device *pmem)
 	blk_cleanup_queue(pmem->pmem_queue);
 }
 
-static int pmem_attach_disk(struct nd_namespace_common *ndns,
+static int pmem_attach_disk(struct device *dev,
+		struct nd_namespace_common *ndns,
 		struct pmem_device *pmem)
 {
 	struct gendisk *disk;
+	struct resource *res = &(to_nd_namespace_io(&ndns->dev)->res);
+	int err;
+
+	err = devm_register_kmap_pfn_range(dev, res, pmem->virt_addr);
+	if (err)
+		return err;
 
 	pmem->pmem_queue = blk_alloc_queue(GFP_KERNEL);
 	if (!pmem->pmem_queue)
@@ -232,7 +235,8 @@ static int nd_pmem_probe(struct device *dev)
 	if (nd_btt_probe(ndns, pmem) == 0)
 		/* we'll come back as btt-pmem */
 		return -ENXIO;
-	return pmem_attach_disk(ndns, pmem);
+
+	return pmem_attach_disk(dev, ndns, pmem);
 }
 
 static int nd_pmem_remove(struct device *dev)
