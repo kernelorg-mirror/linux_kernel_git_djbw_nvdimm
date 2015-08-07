@@ -924,6 +924,63 @@ static inline void set_page_links(struct page *page, enum zone_type zone,
 }
 
 /*
+ * __pfn_t: encapsulates a page-frame number that is optionally backed
+ * by memmap (struct page).  This type will be used in place of a
+ * 'struct page *' instance in contexts where unmapped memory (usually
+ * persistent memory) is being referenced (scatterlists for drivers,
+ * biovecs for the block layer, etc).  Whether a __pfn_t has a struct
+ * page backing is indicated by flags in the low bits of the value;
+ */
+typedef struct {
+	unsigned long val;
+} __pfn_t;
+
+/*
+ * PFN_SG_CHAIN - pfn is a pointer to the next scatterlist entry
+ * PFN_SG_LAST - pfn references a page and is the last scatterlist entry
+ * PFN_DEV - pfn is not covered by system memmap
+ */
+enum {
+	PFN_MASK = (1UL << PAGE_SHIFT) - 1,
+	PFN_SG_CHAIN = (1UL << 0),
+	PFN_SG_LAST = (1UL << 1),
+#ifdef CONFIG_KMAP_PFN
+	PFN_DEV = (1UL << 2),
+#else
+	PFN_DEV = 0,
+#endif
+};
+
+static inline bool __pfn_t_has_page(__pfn_t pfn)
+{
+	return (pfn.val & PFN_DEV) == 0;
+}
+
+static inline unsigned long __pfn_t_to_pfn(__pfn_t pfn)
+{
+	return pfn.val >> PAGE_SHIFT;
+}
+
+static inline struct page *__pfn_t_to_page(__pfn_t pfn)
+{
+	if (!__pfn_t_has_page(pfn))
+		return NULL;
+	return pfn_to_page(__pfn_t_to_pfn(pfn));
+}
+
+static inline dma_addr_t __pfn_t_to_phys(__pfn_t pfn)
+{
+	return __pfn_to_phys(__pfn_t_to_pfn(pfn));
+}
+
+static inline __pfn_t page_to_pfn_t(struct page *page)
+{
+	__pfn_t pfn = { .val = page_to_pfn(page) << PAGE_SHIFT, };
+
+	return pfn;
+}
+
+/*
  * Some inline functions in vmstat.h depend on page_zone()
  */
 #include <linux/vmstat.h>
