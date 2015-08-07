@@ -163,6 +163,44 @@ void __iomem *devm_ioremap_resource(struct device *dev, struct resource *res)
 }
 EXPORT_SYMBOL(devm_ioremap_resource);
 
+void devm_memremap_release(struct device *dev, void *res)
+{
+	memunmap(res);
+}
+
+static int devm_memremap_match(struct device *dev, void *res, void *match_data)
+{
+	return *(void **)res == match_data;
+}
+
+void *devm_memremap(struct device *dev, resource_size_t offset,
+		size_t size, unsigned long flags)
+{
+	void **ptr, *addr;
+
+	ptr = devres_alloc(devm_memremap_release, sizeof(*ptr), GFP_KERNEL);
+	if (!ptr)
+		return NULL;
+
+	addr = memremap(offset, size, flags);
+	if (addr) {
+		*ptr = addr;
+		devres_add(dev, ptr);
+	} else
+		devres_free(ptr);
+
+	return addr;
+}
+EXPORT_SYMBOL(devm_memremap);
+
+void devm_memunmap(struct device *dev, void *addr)
+{
+	WARN_ON(devres_destroy(dev, devm_memremap_release, devm_memremap_match,
+			       addr));
+	memunmap(addr);
+}
+EXPORT_SYMBOL(devm_memunmap);
+
 #ifdef CONFIG_HAS_IOPORT_MAP
 /*
  * Generic iomap devres
