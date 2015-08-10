@@ -28,10 +28,10 @@ static inline bool __arch_has_wmb_pmem(void)
 	return false;
 }
 
-static inline void __pmem *arch_memremap_pmem(resource_size_t offset,
+static inline unsigned long arch_memremap_pmem_flags(resource_size_t offset,
 		unsigned long size)
 {
-	return NULL;
+	return 0;
 }
 
 static inline void arch_memcpy_to_pmem(void __pmem *dst, const void *src,
@@ -43,8 +43,8 @@ static inline void arch_memcpy_to_pmem(void __pmem *dst, const void *src,
 
 /*
  * Architectures that define ARCH_HAS_PMEM_API must provide
- * implementations for arch_memremap_pmem(), arch_memcpy_to_pmem(),
- * arch_wmb_pmem(), and __arch_has_wmb_pmem().
+ * implementations for arch_memremap_pmem_flags(),
+ * arch_memcpy_to_pmem(), arch_wmb_pmem(), and __arch_has_wmb_pmem().
  */
 
 static inline void memcpy_from_pmem(void *dst, void __pmem const *src, size_t size)
@@ -54,7 +54,7 @@ static inline void memcpy_from_pmem(void *dst, void __pmem const *src, size_t si
 
 static inline void memunmap_pmem(void __pmem *addr)
 {
-	iounmap((void __force __iomem *) addr);
+	memunmap((void __force *) addr);
 }
 
 /**
@@ -85,16 +85,15 @@ static inline bool arch_has_pmem_api(void)
  * default_memremap_pmem + default_memcpy_to_pmem is sufficient for
  * making data durable relative to i/o completion.
  */
-static void default_memcpy_to_pmem(void __pmem *dst, const void *src,
+static inline void default_memcpy_to_pmem(void __pmem *dst, const void *src,
 		size_t size)
 {
 	memcpy((void __force *) dst, src, size);
 }
 
-static void __pmem *default_memremap_pmem(resource_size_t offset,
-		unsigned long size)
+static inline unsigned long default_memremap_pmem_flags(void)
 {
-	return (void __pmem *) memremap(offset, size, MEMREMAP_WT);
+	return MEMREMAP_WT;
 }
 
 /**
@@ -112,9 +111,14 @@ static void __pmem *default_memremap_pmem(resource_size_t offset,
 static inline void __pmem *memremap_pmem(resource_size_t offset,
 		unsigned long size)
 {
+	unsigned long flags;
+
 	if (arch_has_pmem_api())
-		return arch_memremap_pmem(offset, size);
-	return default_memremap_pmem(offset, size);
+		flags = arch_memremap_pmem_flags(offset, size);
+	else
+		flags = default_memremap_pmem_flags();
+
+	return (void __pmem *) memremap(offset, size, flags);
 }
 
 /**

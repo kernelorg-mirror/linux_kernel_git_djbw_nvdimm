@@ -205,6 +205,16 @@ err_free_memtype:
 	return NULL;
 }
 
+unsigned long arch_memremap_pmem_flags(resource_size_t offset, size_t size)
+{
+	/*
+	 * The expectation is that pmem is always WB capable range on
+	 * x86, i.e. no need to walk the range.
+	 */
+	return MEMREMAP_WB;
+}
+EXPORT_SYMBOL(arch_memremap_pmem_flags);
+
 /**
  * ioremap_nocache     -   map bus memory into CPU space
  * @phys_addr:    bus address of the memory
@@ -316,12 +326,6 @@ void __iomem *ioremap_cache(resource_size_t phys_addr, unsigned long size)
 				__builtin_return_address(0));
 }
 EXPORT_SYMBOL(ioremap_cache);
-
-void __pmem *arch_memremap_pmem(resource_size_t offset, size_t size)
-{
-	return (void __force __pmem *) ioremap_cache(offset, size);
-}
-EXPORT_SYMBOL(arch_memremap_pmem);
 
 void __iomem *ioremap_prot(resource_size_t phys_addr, unsigned long size,
 				unsigned long prot_val)
