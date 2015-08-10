@@ -108,8 +108,8 @@ static inline unsigned long default_memremap_pmem_flags(void)
  * wmb_pmem() arrange for the data to be written through the
  * cache to persistent media.
  */
-static inline void __pmem *memremap_pmem(resource_size_t offset,
-		unsigned long size)
+static inline void __pmem *memremap_pmem(struct device *dev,
+		resource_size_t offset, unsigned long size)
 {
 	unsigned long flags;
 
@@ -118,7 +118,7 @@ static inline void __pmem *memremap_pmem(resource_size_t offset,
 	else
 		flags = default_memremap_pmem_flags();
 
-	return (void __pmem *) memremap(offset, size, flags);
+	return (void __pmem *) devm_memremap(dev, offset, size, flags);
 }
 
 /**
