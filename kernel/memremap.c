@@ -24,6 +24,17 @@ __weak void __iomem *ioremap_cache(resource_size_t offset, unsigned long size)
 }
 #endif
 
+/* temporary while we convert arch implementations to arch_memremap */
+__weak void *arch_memremap(resource_size_t offset, size_t size,
+		unsigned long flags)
+{
+	if (flags & MEMREMAP_WB)
+		return (void __force *) ioremap_cache(offset, size);
+	else if (flags & MEMREMAP_WT)
+		return (void __force *) ioremap_wt(offset, size);
+	return NULL;
+}
+
 static void *try_ram_remap(resource_size_t offset, size_t size)
 {
 	struct page *page = pfn_to_page(offset >> PAGE_SHIFT);
@@ -58,7 +69,6 @@ static void *try_ram_remap(resource_size_t offset, size_t size)
 void *memremap(resource_size_t offset, size_t size, unsigned long flags)
 {
 	int is_ram = region_intersects(offset, size, "System RAM");
-	void *addr = NULL;
 
 	if (is_ram == REGION_MIXED) {
 		WARN_ONCE(1, "memremap attempted on mixed range %pa size: %#lx\n",
@@ -68,17 +78,18 @@ void *memremap(resource_size_t offset, size_t size, unsigned long flags)
 
 	/* Try all mapping types requested until one returns non-NULL */
 	if (flags & MEMREMAP_WB) {
-		flags &= ~MEMREMAP_WB;
 		/*
 		 * MEMREMAP_WB is special in that it can be satisifed
 		 * from the direct map.  Some archs depend on the
 		 * capability of memremap() to autodetect cases where
 		 * the requested range is potentially in "System RAM"
 		 */
-		if (is_ram == REGION_INTERSECTS)
-			addr = try_ram_remap(offset, size);
-		if (!addr)
-			addr = ioremap_cache(offset, size);
+		if (is_ram == REGION_INTERSECTS) {
+			void *addr = try_ram_remap(offset, size);
+
+			if (!addr)
+				return arch_memremap(offset, size, flags);
+		}
 	}
 
 	/*
@@ -87,18 +98,13 @@ void *memremap(resource_size_t offset, size_t size, unsigned long flags)
 	 * address mapping.  Enforce that this mapping is not aliasing
 	 * "System RAM"
 	 */
-	if (!addr && is_ram == REGION_INTERSECTS && flags) {
+	if (is_ram == REGION_INTERSECTS) {
 		WARN_ONCE(1, "memremap attempted on ram %pa size: %#lx\n",
 				&offset, (unsigned long) size);
 		return NULL;
 	}
 
-	if (!addr && (flags & MEMREMAP_WT)) {
-		flags &= ~MEMREMAP_WT;
-		addr = ioremap_wt(offset, size);
-	}
-
-	return addr;
+	return arch_memremap(offset, size, flags);
 }
 EXPORT_SYMBOL(memremap);
 
