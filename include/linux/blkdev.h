@@ -1615,14 +1615,31 @@ static inline bool integrity_req_gap_front_merge(struct request *req,
 
 #endif /* CONFIG_BLK_DEV_INTEGRITY */
 
+#define BLKDAX_F_DIRTY (1UL << 0) /* range is mapped writable to userspace */
+
+/**
+ * struct blk_dax_ctl - control and output parameters for ->direct_access
+ * @sector: (input) offset relative to a block_device
+ * @addr: (output) kernel virtual address for @sector populated by driver
+ * @flags: (input) BLKDAX_F_*
+ * @pfn: (output) page frame number for @addr populated by driver
+ * @size: (input) number of bytes requested
+ */
+struct blk_dax_ctl {
+	sector_t sector;
+	void __pmem *addr;
+	unsigned long flags;
+	long size;
+	pfn_t pfn;
+};
+
 struct block_device_operations {
 	int (*open) (struct block_device *, fmode_t);
 	void (*release) (struct gendisk *, fmode_t);
 	int (*rw_page)(struct block_device *, sector_t, struct page *, int rw);
 	int (*ioctl) (struct block_device *, fmode_t, unsigned, unsigned long);
 	int (*compat_ioctl) (struct block_device *, fmode_t, unsigned, unsigned long);
-	long (*direct_access)(struct block_device *, sector_t, void __pmem **,
-			pfn_t *);
+	long (*direct_access)(struct block_device *, struct blk_dax_ctl *);
 	unsigned int (*check_events) (struct gendisk *disk,
 				      unsigned int clearing);
 	/* ->media_changed() is DEPRECATED, use ->check_events() instead */
@@ -1640,8 +1657,7 @@ extern int __blkdev_driver_ioctl(struct block_device *, fmode_t, unsigned int,
 extern int bdev_read_page(struct block_device *, sector_t, struct page *);
 extern int bdev_write_page(struct block_device *, sector_t, struct page *,
 						struct writeback_control *);
-extern long bdev_direct_access(struct block_device *, sector_t,
-		void __pmem **addr, pfn_t *pfn, long size);
+extern long bdev_direct_access(struct block_device *, struct blk_dax_ctl *);
 #else /* CONFIG_BLOCK */
 
 struct block_device;

@@ -453,10 +453,7 @@ EXPORT_SYMBOL_GPL(bdev_write_page);
 /**
  * bdev_direct_access() - Get the address for directly-accessibly memory
  * @bdev: The device containing the memory
- * @sector: The offset within the device
- * @addr: Where to put the address of the memory
- * @pfn: The Page Frame Number for the memory
- * @size: The number of bytes requested
+ * @ctl: control and output parameters for ->direct_access
  *
  * If a block device is made up of directly addressable memory, this function
  * will tell the caller the PFN and the address of the memory.  The address
@@ -467,10 +464,10 @@ EXPORT_SYMBOL_GPL(bdev_write_page);
  * Return: negative errno if an error occurs, otherwise the number of bytes
  * accessible at this address.
  */
-long bdev_direct_access(struct block_device *bdev, sector_t sector,
-			void __pmem **addr, pfn_t *pfn, long size)
+long bdev_direct_access(struct block_device *bdev, struct blk_dax_ctl *ctl)
 {
-	long avail;
+	sector_t sector, save;
+	long avail, size = ctl->size;
 	const struct block_device_operations *ops = bdev->bd_disk->fops;
 
 	/*
@@ -479,6 +476,8 @@ long bdev_direct_access(struct block_device *bdev, sector_t sector,
 	 */
 	might_sleep();
 
+	save = ctl->sector;
+	sector = ctl->sector;
 	if (size < 0)
 		return size;
 	if (!ops->direct_access)
@@ -489,7 +488,9 @@ long bdev_direct_access(struct block_device *bdev, sector_t sector,
 	sector += get_start_sect(bdev);
 	if (sector % (PAGE_SIZE / 512))
 		return -EINVAL;
-	avail = ops->direct_access(bdev, sector, addr, pfn);
+	ctl->sector = sector;
+	avail = ops->direct_access(bdev, ctl);
+	ctl->sector = save;
 	if (!avail)
 		return -ERANGE;
 	return min(avail, size);

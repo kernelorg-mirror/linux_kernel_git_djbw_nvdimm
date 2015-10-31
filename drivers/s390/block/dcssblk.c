@@ -880,8 +880,7 @@ fail:
 }
 
 static long
-dcssblk_direct_access (struct block_device *bdev, sector_t secnum,
-			void __pmem **kaddr, pfn_t *pfn)
+dcssblk_direct_access (struct block_device *bdev, struct blk_dax_ctl *dax)
 {
 	struct dcssblk_dev_info *dev_info;
 	unsigned long offset, dev_sz;
@@ -890,9 +889,9 @@ dcssblk_direct_access (struct block_device *bdev, sector_t secnum,
 	if (!dev_info)
 		return -ENODEV;
 	dev_sz = dev_info->end - dev_info->start;
-	offset = secnum * 512;
-	*kaddr = (void __pmem *) (dev_info->start + offset);
-	*pfn = phys_to_pfn_t(dev_info->start + offset, PFN_DEV);
+	offset = dax->sector * 512;
+	dax->addr = (void __pmem *) (dev_info->start + offset);
+	dax->pfn = phys_to_pfn_t(dev_info->start + offset, PFN_DEV);
 
 	return dev_sz - offset;
 }
