@@ -152,16 +152,37 @@ static struct inode *bdev_file_inode(struct file *file)
 	return file->f_mapping->host;
 }
 
+#ifdef CONFIG_FS_DAX
+bool blkdev_dax_capable(struct block_device *bdev)
+{
+	struct gendisk *disk = bdev->bd_disk;
+
+	if (!disk->fops->direct_access)
+		return false;
+
+	/*
+	 * If the partition is not aligned on a page boundary, we can't
+	 * do dax I/O to it.
+	 */
+	if ((bdev->bd_part->start_sect % (PAGE_SIZE / 512))
+			|| (bdev->bd_part->nr_sects % (PAGE_SIZE / 512)))
+		return false;
+
+	return true;
+}
+#endif
+
 static ssize_t
 blkdev_direct_IO(struct kiocb *iocb, struct iov_iter *iter, loff_t offset)
 {
 	struct file *file = iocb->ki_filp;
 	struct inode *inode = bdev_file_inode(file);
+	struct block_device *bdev = I_BDEV(inode);
 
-	if (IS_DAX(inode))
+	if (blkdev_dax_capable(bdev))
 		return dax_do_io(iocb, inode, iter, offset, blkdev_get_block,
 				NULL, DIO_SKIP_DIO_COUNT);
-	return __blockdev_direct_IO(iocb, inode, I_BDEV(inode), iter, offset,
+	return __blockdev_direct_IO(iocb, inode, bdev, iter, offset,
 				    blkdev_get_block, NULL, NULL,
 				    DIO_SKIP_DIO_COUNT);
 }
@@ -1185,7 +1206,6 @@ static int __blkdev_get(struct block_device *bdev, fmode_t mode, int for_part)
 		bdev->bd_disk = disk;
 		bdev->bd_queue = disk->queue;
 		bdev->bd_contains = bdev;
-		bdev->bd_inode->i_flags = disk->fops->direct_access ? S_DAX : 0;
 		if (!partno) {
 			ret = -ENXIO;
 			bdev->bd_part = disk_get_part(disk, partno);
@@ -1247,13 +1267,6 @@ static int __blkdev_get(struct block_device *bdev, fmode_t mode, int for_part)
 				goto out_clear;
 			}
 			bd_set_size(bdev, (loff_t)bdev->bd_part->nr_sects << 9);
-			/*
-			 * If the partition is not aligned on a page
-			 * boundary, we can't do dax I/O to it.
-			 */
-			if ((bdev->bd_part->start_sect % (PAGE_SIZE / 512)) ||
-			    (bdev->bd_part->nr_sects % (PAGE_SIZE / 512)))
-				bdev->bd_inode->i_flags &= ~S_DAX;
 		}
 	} else {
 		if (bdev->bd_contains == bdev) {

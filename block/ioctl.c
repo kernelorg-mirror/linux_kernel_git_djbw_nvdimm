@@ -298,13 +298,12 @@ static inline int is_unrecognized_ioctl(int ret)
 #ifdef CONFIG_FS_DAX
 static int blkdev_set_dax(struct block_device *bdev, int n)
 {
-	struct gendisk *disk = bdev->bd_disk;
 	int rc = 0;
 
 	if (n)
 		n = S_DAX;
 
-	if (n && !disk->fops->direct_access)
+	if (n && !blkdev_dax_capable(bdev))
 		return -ENOTTY;
 
 	mutex_lock(&bdev->bd_inode->i_mutex);
