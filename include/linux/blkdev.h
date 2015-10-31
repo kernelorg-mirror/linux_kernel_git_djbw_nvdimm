@@ -793,6 +793,17 @@ extern int scsi_cmd_ioctl(struct request_queue *, struct gendisk *, fmode_t,
 extern int sg_scsi_ioctl(struct request_queue *, struct gendisk *, fmode_t,
 			 struct scsi_ioctl_command __user *);
 
+static inline void blk_queue_enter_live(struct request_queue *q)
+{
+	/*
+	 * Given that running in generic_make_request() context
+	 * guarantees that a live reference against q_usage_counter has
+	 * been established, further references under that same context
+	 * need not check that the queue has been frozen (marked dead).
+	 */
+	percpu_ref_get(&q->q_usage_counter);
+}
+
 extern int blk_queue_enter(struct request_queue *q, gfp_t gfp);
 extern void blk_queue_exit(struct request_queue *q);
 extern void blk_start_queue(struct request_queue *q);
