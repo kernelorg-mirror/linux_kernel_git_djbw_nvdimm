@@ -19,7 +19,7 @@ dirty() {
 	fi
 }
 
-DEF_VER=57.1
+DEF_VER=$(MAKEFLAGS= make -sC ../.. kernelversion)
 
 LF='
 '
@@ -29,7 +29,7 @@ LF='
 if test -f version; then
 	VN=$(cat version) || VN="$DEF_VER"
 elif test -d ${GIT_DIR:-.git} -o -f .git &&
-	VN=$(git describe --match "v[0-9]*" --abbrev=7 HEAD 2>/dev/null) &&
+	VN=$(git describe --match "v[4-9]*" --abbrev=7 HEAD 2>/dev/null) &&
 	case "$VN" in
 	*$LF*) (exit 1) ;;
 	v[0-9]*)
@@ -37,9 +37,9 @@ elif test -d ${GIT_DIR:-.git} -o -f .git &&
 	esac; then
 	VN=$(echo "$VN" | sed -e 's/-/./g');
 else
-	read COMMIT COMMIT_SUBJECT <<EOF
+	read COMMIT COMMIT_SUBJECT <<- EOF
 	$(git log --oneline --abbrev=8 -n1 HEAD 2>/dev/null)
-EOF
+	EOF
 	if [ -z $COMMIT ]; then
 		VN="${DEF_VER}+"
 	else
