@@ -17,17 +17,20 @@
 #include <unistd.h>
 #include <limits.h>
 #include <syslog.h>
+#include <builtin.h>
 #include <sys/stat.h>
 #include <uuid/uuid.h>
 #include <sys/types.h>
 #include <util/size.h>
 #include <util/json.h>
 #include <json-c/json.h>
+#include <util/util.h>
 #include <util/kernel.h>
 #include <util/filter.h>
 #include <ndctl/libndctl.h>
-#include <util/parse-options.h>
+#include <subcmd/parse-options.h>
 #include "check.h"
+#include "test.h"
 
 #ifdef HAVE_NDCTL_H
 #include <linux/ndctl.h>

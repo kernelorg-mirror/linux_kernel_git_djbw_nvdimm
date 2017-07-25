@@ -21,12 +21,14 @@
  * Builtin help command
  */
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
 #include <builtin.h>
+#include <util/util.h>
 #include <util/strbuf.h>
-#include <util/parse-options.h>
+#include <subcmd/parse-options.h>
 
 #define pr_err(x, ...) fprintf(stderr, x, ##__VA_ARGS__)
 #define STRERR_BUFSIZE  128     /* For the buffer size of strerror_r */

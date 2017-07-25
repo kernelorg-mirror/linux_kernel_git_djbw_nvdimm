@@ -14,7 +14,9 @@
 #include <syslog.h>
 #include <test.h>
 #include <limits.h>
-#include <util/parse-options.h>
+#include <builtin.h>
+#include <util/util.h>
+#include <subcmd/parse-options.h>
 
 int cmd_bat(int argc, const char **argv, void *ctx)
 {

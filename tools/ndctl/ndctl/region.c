@@ -14,8 +14,9 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <util/util.h>
 #include <util/filter.h>
-#include <util/parse-options.h>
+#include <subcmd/parse-options.h>
 #include <ndctl/libndctl.h>
 
 static struct {

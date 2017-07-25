@@ -24,8 +24,8 @@
 #include <builtin.h>
 #include <ndctl/libndctl.h>
 
-#include <util/parse-options.h>
 #include <util/kernel.h>
+#include <subcmd/parse-options.h>
 #include <util/strbuf.h>
 #include <util/util.h>
 #include <util/main.h>

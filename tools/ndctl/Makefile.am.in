@@ -10,6 +10,7 @@ AM_CPPFLAGS = \
 	-DPREFIX=\""$(prefix)"\" \
 	-DNDCTL_MAN_PATH=\""$(mandir)"\" \
 	-I${top_srcdir}/../include \
+	-I${top_srcdir}/../lib/ \
 	-I${top_srcdir}/ndctl/lib \
 	-I${top_srcdir}/ndctl \
 	-I${top_srcdir}/ \

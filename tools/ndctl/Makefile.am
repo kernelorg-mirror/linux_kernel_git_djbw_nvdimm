@@ -56,9 +56,15 @@ libccan_a_SOURCES = \
 
 noinst_LIBRARIES += libutil.a
 libutil_a_SOURCES = \
+	../lib/subcmd/exec-cmd.c \
+	../lib/subcmd/help.c \
+	../lib/subcmd/pager.c \
+	../lib/subcmd/parse-options.c \
+	../lib/subcmd/run-command.c \
+	../lib/subcmd/sigchain.c \
+	../lib/subcmd/subcmd-config.c \
+	../lib/str_error_r.c \
 	../lib/find_bit.c \
-	util/parse-options.c \
-	util/parse-options.h \
 	util/usage.c \
 	util/size.c \
 	util/main.c \

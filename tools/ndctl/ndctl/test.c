@@ -14,7 +14,9 @@
 #include <limits.h>
 #include <syslog.h>
 #include <test.h>
-#include <util/parse-options.h>
+#include <builtin.h>
+#include <util/util.h>
+#include <subcmd/parse-options.h>
 
 static char *result(int rc)
 {

@@ -23,7 +23,7 @@
 #include <sys/types.h>
 #include <util/kernel.h>
 #include <daxctl/libdaxctl.h>
-#include <util/parse-options.h>
+#include <subcmd/parse-options.h>
 
 #include <util/strbuf.h>
 #include <util/util.h>

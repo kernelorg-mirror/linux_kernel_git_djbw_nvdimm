@@ -15,6 +15,7 @@
 #ifndef __NFIT_H__
 #define __NFIT_H__
 #include <stdint.h>
+#include <string.h>
 #include <linux/uuid.h>
 
 static inline void nfit_spa_uuid_pm(void *uuid)

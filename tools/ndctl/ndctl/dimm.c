@@ -22,10 +22,11 @@
 #include <util/json.h>
 #include <util/filter.h>
 #include <json-c/json.h>
+#include <util/util.h>
 #include <util/kernel.h>
 #include <util/fletcher.h>
 #include <ndctl/libndctl.h>
-#include <util/parse-options.h>
+#include <subcmd/parse-options.h>
 #include <ccan/short_types/short_types.h>
 
 #include <ccan/endian/endian.h>

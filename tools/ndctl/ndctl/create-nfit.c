@@ -20,8 +20,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <util/list.h>
-#include <util/parse-options.h>
+#include <subcmd/parse-options.h>
 #include <util/size.h>
+#include <util/util.h>
 
 #include <nfit.h>
 
