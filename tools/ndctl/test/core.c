@@ -20,7 +20,7 @@
 
 #include <util/log.h>
 #include <util/sysfs.h>
-#include <ccan/array_size/array_size.h>
+#include <util/kernel.h>
 
 #define KVER_STRLEN 20
 

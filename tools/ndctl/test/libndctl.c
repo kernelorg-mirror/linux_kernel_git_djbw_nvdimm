@@ -28,7 +28,7 @@
 #include <sys/select.h>
 #include <linux/version.h>
 
-#include <ccan/array_size/array_size.h>
+#include <util/kernel.h>
 #include <ndctl/libndctl.h>
 #include <daxctl/libdaxctl.h>
 #ifdef HAVE_NDCTL_H
@@ -2289,7 +2289,6 @@ static int check_smart_threshold(struct ndctl_bus *bus, struct ndctl_dimm *dimm,
 }
 #endif
 
-#define BITS_PER_LONG 32
 static int check_commands(struct ndctl_bus *bus, struct ndctl_dimm *dimm,
 		unsigned long bus_commands, unsigned long dimm_commands,
 		struct ndctl_test *test)

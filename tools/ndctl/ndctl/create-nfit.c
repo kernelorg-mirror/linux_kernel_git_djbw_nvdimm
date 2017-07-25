@@ -14,11 +14,12 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <fcntl.h>
+#include <limits.h>
 #include <unistd.h>
 #include <endian.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <ccan/list/list.h>
+#include <util/list.h>
 #include <util/parse-options.h>
 #include <util/size.h>
 
@@ -29,7 +30,7 @@ static const char *nfit_file = DEFAULT_NFIT;
 static LIST_HEAD(spas);
 
 struct spa {
-	struct list_node list;
+	struct list_head list;
 	unsigned long long size, offset;
 };
 
@@ -56,7 +57,7 @@ static int parse_add_spa(const struct option *option, const char *__arg, int uns
 	if (s->offset == ULLONG_MAX)
 		goto err;
 
-	list_add_tail(&spas, &s->list);
+	list_add_tail(&s->list, &spas);
 	free(arg);
 
 	return 0;
@@ -116,7 +117,7 @@ static struct nfit *create_nfit(struct list_head *spa_list)
 	int i;
 
 	size = sizeof(struct nfit);
-	list_for_each(spa_list, s, list)
+	list_for_each_entry(s, spa_list, list)
 		size += sizeof(struct nfit_spa);
 
 	buf = calloc(1, size);
@@ -136,7 +137,7 @@ static struct nfit *create_nfit(struct list_head *spa_list)
 
 	nfit_spa = (struct nfit_spa *) (buf + sizeof(*nfit));
 	i = 1;
-	list_for_each(spa_list, s, list) {
+	list_for_each_entry(s, spa_list, list) {
 		writew(NFIT_TABLE_SPA, &nfit_spa->type);
 		writew(sizeof(*nfit_spa), &nfit_spa->length);
 		nfit_spa_uuid_pm(&nfit_spa->type_uuid);
@@ -218,7 +219,7 @@ int cmd_create_nfit(int argc, const char **argv, void *ctx)
 
  out:
 	free(nfit);
-	list_for_each_safe(&spas, s, _s, list) {
+	list_for_each_entry_safe(s, _s, &spas, list) {
 		list_del(&s->list);
 		free(s);
 	}

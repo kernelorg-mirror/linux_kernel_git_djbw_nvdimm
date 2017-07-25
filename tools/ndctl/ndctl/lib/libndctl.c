@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <stdarg.h>
+#include <limits.h>
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
@@ -23,10 +24,8 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
-#include <ccan/list/list.h>
-#include <ccan/minmax/minmax.h>
-#include <ccan/array_size/array_size.h>
-#include <ccan/build_assert/build_assert.h>
+#include <util/sysfs.h>
+#include <util/kernel.h>
 
 #ifdef HAVE_NDCTL_H
 #include <linux/ndctl.h>
@@ -34,7 +33,6 @@
 #include <ndctl.h>
 #endif
 
-#include <util/sysfs.h>
 #include <ndctl/libndctl.h>
 #include <daxctl/libdaxctl.h>
 #include "libndctl-private.h"
@@ -93,7 +91,7 @@ struct ndctl_bus {
 	char *provider;
 	struct list_head dimms;
 	struct list_head regions;
-	struct list_node list;
+	struct list_head list;
 	int dimms_init;
 	int regions_init;
 	int has_nfit;
@@ -156,7 +154,7 @@ struct ndctl_dimm {
 			unsigned int f_notify:1;
 		};
 	} flags;
-	struct list_node list;
+	struct list_head list;
 	int formats;
 	int format[0];
 };
@@ -174,7 +172,7 @@ struct ndctl_mapping {
 	struct ndctl_region *region;
 	struct ndctl_dimm *dimm;
 	unsigned long long offset, length;
-	struct list_node list;
+	struct list_head list;
 };
 
 /**
@@ -219,7 +217,7 @@ struct ndctl_region {
 	struct list_head stale_btts;
 	struct list_head stale_pfns;
 	struct list_head stale_daxs;
-	struct list_node list;
+	struct list_head list;
 	/**
 	 * struct ndctl_interleave_set - extra info for interleave sets
 	 * @state: are any interleave set members active or all idle
@@ -261,7 +259,7 @@ struct ndctl_lbasize {
 struct ndctl_namespace {
 	struct kmod_module *module;
 	struct ndctl_region *region;
-	struct list_node list;
+	struct list_head list;
 	char *ndns_path;
 	char *ndns_buf;
 	char *bdev;
@@ -291,7 +289,7 @@ struct ndctl_btt {
 	struct kmod_module *module;
 	struct ndctl_region *region;
 	struct ndctl_namespace *ndns;
-	struct list_node list;
+	struct list_head list;
 	struct ndctl_lbasize lbasize;
 	unsigned long long size;
 	char *btt_path;
@@ -318,7 +316,7 @@ struct ndctl_pfn {
 	struct kmod_module *module;
 	struct ndctl_region *region;
 	struct ndctl_namespace *ndns;
-	struct list_node list;
+	struct list_head list;
 	enum ndctl_pfn_loc loc;
 	unsigned long align;
 	unsigned long long resource, size;
@@ -402,7 +400,7 @@ NDCTL_EXPORT int ndctl_new(struct ndctl_ctx **ctx)
 	log_init(&c->ctx, "libndctl", "NDCTL_LOG");
 	c->udev = udev;
 	c->timeout = 5000;
-	list_head_init(&c->busses);
+	INIT_LIST_HEAD(&c->busses);
 
 	info(c, "ctx %p created\n", c);
 	dbg(c, "log_priority=%d\n", c->ctx.log_priority);
@@ -483,7 +481,7 @@ static void free_namespaces(struct ndctl_region *region)
 {
 	struct ndctl_namespace *ndns, *_n;
 
-	list_for_each_safe(&region->namespaces, ndns, _n, list)
+	list_for_each_entry_safe(ndns, _n, &region->namespaces, list)
 		free_namespace(ndns, &region->namespaces);
 }
 
@@ -491,7 +489,7 @@ static void free_stale_namespaces(struct ndctl_region *region)
 {
 	struct ndctl_namespace *ndns, *_n;
 
-	list_for_each_safe(&region->stale_namespaces, ndns, _n, list)
+	list_for_each_entry_safe(ndns, _n, &region->stale_namespaces, list)
 		free_namespace(ndns, &region->stale_namespaces);
 }
 
@@ -511,7 +509,7 @@ static void free_btts(struct ndctl_region *region)
 {
 	struct ndctl_btt *btt, *_b;
 
-	list_for_each_safe(&region->btts, btt, _b, list)
+	list_for_each_entry_safe(btt, _b, &region->btts, list)
 		free_btt(btt, &region->btts);
 }
 
@@ -519,7 +517,7 @@ static void free_stale_btts(struct ndctl_region *region)
 {
 	struct ndctl_btt *btt, *_b;
 
-	list_for_each_safe(&region->stale_btts, btt, _b, list)
+	list_for_each_entry_safe(btt, _b, &region->stale_btts, list)
 		free_btt(btt, &region->stale_btts);
 }
 
@@ -548,7 +546,7 @@ static void free_pfns(struct ndctl_region *region)
 {
 	struct ndctl_pfn *pfn, *_b;
 
-	list_for_each_safe(&region->pfns, pfn, _b, list)
+	list_for_each_entry_safe(pfn, _b, &region->pfns, list)
 		free_pfn(pfn, &region->pfns);
 }
 
@@ -556,7 +554,7 @@ static void free_daxs(struct ndctl_region *region)
 {
 	struct ndctl_dax *dax, *_b;
 
-	list_for_each_safe(&region->daxs, dax, _b, pfn.list)
+	list_for_each_entry_safe(dax, _b, &region->daxs, pfn.list)
 		free_dax(dax, &region->daxs);
 }
 
@@ -564,7 +562,7 @@ static void free_stale_pfns(struct ndctl_region *region)
 {
 	struct ndctl_pfn *pfn, *_b;
 
-	list_for_each_safe(&region->stale_pfns, pfn, _b, list)
+	list_for_each_entry_safe(pfn, _b, &region->stale_pfns, list)
 		free_pfn(pfn, &region->stale_pfns);
 }
 
@@ -572,7 +570,7 @@ static void free_stale_daxs(struct ndctl_region *region)
 {
 	struct ndctl_dax *dax, *_b;
 
-	list_for_each_safe(&region->stale_daxs, dax, _b, pfn.list)
+	list_for_each_entry_safe(dax, _b, &region->stale_daxs, pfn.list)
 		free_dax(dax, &region->stale_daxs);
 }
 
@@ -581,7 +579,7 @@ static void free_region(struct ndctl_region *region)
 	struct ndctl_bus *bus = region->bus;
 	struct ndctl_mapping *mapping, *_m;
 
-	list_for_each_safe(&region->mappings, mapping, _m, list) {
+	list_for_each_entry_safe(mapping, _m, &region->mappings, list) {
 		list_del_from(&region->mappings, &mapping->list);
 		free(mapping);
 	}
@@ -621,11 +619,11 @@ static void free_bus(struct ndctl_bus *bus, struct list_head *head)
 	struct ndctl_dimm *dimm, *_d;
 	struct ndctl_region *region, *_r;
 
-	list_for_each_safe(&bus->dimms, dimm, _d, list) {
+	list_for_each_entry_safe(dimm, _d, &bus->dimms, list) {
 		list_del_from(&bus->dimms, &dimm->list);
 		free_dimm(dimm);
 	}
-	list_for_each_safe(&bus->regions, region, _r, list)
+	list_for_each_entry_safe(region, _r, &bus->regions, list)
 		free_region(region);
 	if (head)
 		list_del_from(head, &bus->list);
@@ -640,7 +638,7 @@ static void free_context(struct ndctl_ctx *ctx)
 {
 	struct ndctl_bus *bus, *_b;
 
-	list_for_each_safe(&ctx->busses, bus, _b, list)
+	list_for_each_entry_safe(bus, _b, &ctx->busses, list)
 		free_bus(bus, &ctx->busses);
 	free(ctx);
 }
@@ -820,8 +818,8 @@ static void *add_bus(void *parent, int id, const char *ctl_base)
 	bus = calloc(1, sizeof(*bus));
 	if (!bus)
 		goto err_bus;
-	list_head_init(&bus->dimms);
-	list_head_init(&bus->regions);
+	INIT_LIST_HEAD(&bus->dimms);
+	INIT_LIST_HEAD(&bus->regions);
 	bus->ctx = ctx;
 	bus->id = id;
 
@@ -874,7 +872,7 @@ static void *add_bus(void *parent, int id, const char *ctl_base)
 			return bus_dup;
 		}
 
-	list_add(&ctx->busses, &bus->list);
+	list_add(&bus->list, &ctx->busses);
 	free(path);
 
 	return bus;
@@ -916,7 +914,7 @@ NDCTL_EXPORT struct ndctl_bus *ndctl_bus_get_first(struct ndctl_ctx *ctx)
 {
 	busses_init(ctx);
 
-	return list_top(&ctx->busses, struct ndctl_bus, list);
+	return list_first_entry_or_null(&ctx->busses, struct ndctl_bus, list);
 }
 
 /**
@@ -1307,7 +1305,7 @@ static void *add_dimm(void *parent, int id, const char *dimm_base)
 
 	dimm->health_eventfd = open(path, O_RDONLY|O_CLOEXEC);
  out:
-	list_add(&bus->dimms, &dimm->list);
+	list_add(&dimm->list, &bus->dimms);
 	free(path);
 
 	return dimm;
@@ -1332,7 +1330,7 @@ NDCTL_EXPORT struct ndctl_dimm *ndctl_dimm_get_first(struct ndctl_bus *bus)
 {
 	dimms_init(bus);
 
-	return list_top(&bus->dimms, struct ndctl_dimm, list);
+	return list_first_entry_or_null(&bus->dimms, struct ndctl_dimm, list);
 }
 
 NDCTL_EXPORT struct ndctl_dimm *ndctl_dimm_get_next(struct ndctl_dimm *dimm)
@@ -1618,15 +1616,15 @@ static void *add_region(void *parent, int id, const char *region_base)
 	region = calloc(1, sizeof(*region));
 	if (!region)
 		goto err_region;
-	list_head_init(&region->btts);
-	list_head_init(&region->pfns);
-	list_head_init(&region->daxs);
-	list_head_init(&region->stale_btts);
-	list_head_init(&region->stale_pfns);
-	list_head_init(&region->stale_daxs);
-	list_head_init(&region->mappings);
-	list_head_init(&region->namespaces);
-	list_head_init(&region->stale_namespaces);
+	INIT_LIST_HEAD(&region->btts);
+	INIT_LIST_HEAD(&region->pfns);
+	INIT_LIST_HEAD(&region->daxs);
+	INIT_LIST_HEAD(&region->stale_btts);
+	INIT_LIST_HEAD(&region->stale_pfns);
+	INIT_LIST_HEAD(&region->stale_daxs);
+	INIT_LIST_HEAD(&region->mappings);
+	INIT_LIST_HEAD(&region->namespaces);
+	INIT_LIST_HEAD(&region->stale_namespaces);
 	region->bus = bus;
 	region->id = id;
 
@@ -1681,7 +1679,7 @@ static void *add_region(void *parent, int id, const char *region_base)
 	if (!region->region_path)
 		goto err_read;
 
-	list_add(&bus->regions, &region->list);
+	list_add(&region->list, &bus->regions);
 
 	free(path);
 	return region;
@@ -1708,7 +1706,8 @@ NDCTL_EXPORT struct ndctl_region *ndctl_region_get_first(struct ndctl_bus *bus)
 {
 	regions_init(bus);
 
-	return list_top(&bus->regions, struct ndctl_region, list);
+	return list_first_entry_or_null(&bus->regions, struct ndctl_region,
+			list);
 }
 
 NDCTL_EXPORT struct ndctl_region *ndctl_region_get_next(struct ndctl_region *region)
@@ -2018,7 +2017,7 @@ NDCTL_EXPORT ssize_t ndctl_cmd_vendor_get_output(struct ndctl_cmd *cmd,
 	if (out_length < 0)
 		return out_length;
 
-	len = min(len, out_length);
+	len = min((ssize_t) len, out_length);
 	memcpy(buf, to_vendor_tail(cmd)->out_buf, len);
 	return len;
 }
@@ -2533,10 +2532,10 @@ static int ndctl_region_disable(struct ndctl_region *region, int cleanup)
 	region->btts_init = 0;
 	region->pfns_init = 0;
 	region->daxs_init = 0;
-	list_append_list(&region->stale_namespaces, &region->namespaces);
-	list_append_list(&region->stale_btts, &region->btts);
-	list_append_list(&region->stale_pfns, &region->pfns);
-	list_append_list(&region->stale_daxs, &region->daxs);
+	list_splice_init(&region->namespaces, &region->stale_namespaces);
+	list_splice_init(&region->btts, &region->stale_btts);
+	list_splice_init(&region->pfns, &region->stale_pfns);
+	list_splice_init(&region->daxs, &region->stale_daxs);
 	region->generation++;
 	if (cleanup)
 		ndctl_region_cleanup(region);
@@ -2755,7 +2754,7 @@ static void mappings_init(struct ndctl_region *region)
 		mapping->offset = offset;
 		mapping->length = length;
 		mapping->dimm = dimm;
-		list_add(&region->mappings, &mapping->list);
+		list_add(&mapping->list, &region->mappings);
 	}
 	free(mapping_path);
 }
@@ -2764,7 +2763,8 @@ NDCTL_EXPORT struct ndctl_mapping *ndctl_mapping_get_first(struct ndctl_region *
 {
 	mappings_init(region);
 
-	return list_top(&region->mappings, struct ndctl_mapping, list);
+	return list_first_entry_or_null(&region->mappings,
+			struct ndctl_mapping, list);
 }
 
 NDCTL_EXPORT struct ndctl_mapping *ndctl_mapping_get_next(struct ndctl_mapping *mapping)
@@ -2991,7 +2991,7 @@ static void *add_namespace(void *parent, int id, const char *ndns_base)
 			return ndns_dup;
 		}
 
-	list_add(&region->namespaces, &ndns->list);
+	list_add(&ndns->list, &region->namespaces);
 	free(path);
 	return ndns;
 
@@ -3023,7 +3023,8 @@ NDCTL_EXPORT struct ndctl_namespace *ndctl_namespace_get_first(struct ndctl_regi
 {
 	namespaces_init(region);
 
-	return list_top(&region->namespaces, struct ndctl_namespace, list);
+	return list_first_entry_or_null(&region->namespaces,
+			struct ndctl_namespace, list);
 }
 
 NDCTL_EXPORT struct ndctl_namespace *ndctl_namespace_get_next(struct ndctl_namespace *ndns)
@@ -3915,7 +3916,7 @@ static void *add_btt(void *parent, int id, const char *btt_base)
 			return btt_dup;
 		}
 
-	list_add(&region->btts, &btt->list);
+	list_add(&btt->list, &region->btts);
 	return btt;
 
  err_read:
@@ -3932,7 +3933,7 @@ NDCTL_EXPORT struct ndctl_btt *ndctl_btt_get_first(struct ndctl_region *region)
 {
 	btts_init(region);
 
-	return list_top(&region->btts, struct ndctl_btt, list);
+	return list_first_entry_or_null(&region->btts, struct ndctl_btt, list);
 }
 
 NDCTL_EXPORT struct ndctl_btt *ndctl_btt_get_next(struct ndctl_btt *btt)
@@ -4305,7 +4306,7 @@ static void *add_pfn(void *parent, int id, const char *pfn_base)
 			return pfn_dup;
 		}
 
-	list_add(&region->pfns, &pfn->list);
+	list_add(&pfn->list, &region->pfns);
 
 	return pfn;
 }
@@ -4337,7 +4338,7 @@ static void *add_dax(void *parent, int id, const char *dax_base)
 		}
 	}
 
-	list_add(&region->daxs, &dax->pfn.list);
+	list_add(&dax->pfn.list, &region->daxs);
 
 	return dax;
 }
@@ -4346,7 +4347,7 @@ NDCTL_EXPORT struct ndctl_pfn *ndctl_pfn_get_first(struct ndctl_region *region)
 {
 	pfns_init(region);
 
-	return list_top(&region->pfns, struct ndctl_pfn, list);
+	return list_first_entry_or_null(&region->pfns, struct ndctl_pfn, list);
 }
 
 NDCTL_EXPORT struct ndctl_pfn *ndctl_pfn_get_next(struct ndctl_pfn *pfn)
@@ -4668,7 +4669,8 @@ NDCTL_EXPORT struct ndctl_dax *ndctl_dax_get_first(struct ndctl_region *region)
 {
 	daxs_init(region);
 
-	return list_top(&region->daxs, struct ndctl_dax, pfn.list);
+	return list_first_entry_or_null(&region->daxs, struct ndctl_dax,
+			pfn.list);
 }
 
 NDCTL_EXPORT struct ndctl_dax *ndctl_dax_get_next(struct ndctl_dax *dax)

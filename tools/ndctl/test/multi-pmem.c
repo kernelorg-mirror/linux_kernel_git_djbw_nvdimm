@@ -23,10 +23,10 @@
 #include <uuid/uuid.h>
 #include <sys/types.h>
 #include <util/size.h>
+#include <util/kernel.h>
 #include <linux/falloc.h>
 #include <linux/version.h>
 #include <ndctl/libndctl.h>
-#include <ccan/array_size/array_size.h>
 
 #ifdef HAVE_NDCTL_H
 #include <linux/ndctl.h>

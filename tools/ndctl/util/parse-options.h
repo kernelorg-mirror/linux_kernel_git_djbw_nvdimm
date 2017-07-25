@@ -19,6 +19,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <util/util.h>
+#include <util/kernel.h>
 
 enum parse_opt_type {
 	/* special types */

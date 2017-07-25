@@ -17,10 +17,10 @@
 #include <limits.h>
 #include <util/json.h>
 #include <util/filter.h>
+#include <util/kernel.h>
 #include <json-c/json.h>
 #include <daxctl/libdaxctl.h>
 #include <util/parse-options.h>
-#include <ccan/array_size/array_size.h>
 
 static struct {
 	bool devs;

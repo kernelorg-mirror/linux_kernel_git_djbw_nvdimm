@@ -31,7 +31,7 @@ struct daxctl_region {
 	unsigned long align;
 	unsigned long long size;
 	struct daxctl_ctx *ctx;
-	struct list_node list;
+	struct list_head list;
 	struct list_head devices;
 };
 
@@ -40,7 +40,7 @@ struct daxctl_dev {
 	void *dev_buf;
 	size_t buf_len;
 	char *dev_path;
-	struct list_node list;
+	struct list_head list;
 	unsigned long long size;
 	struct daxctl_region *region;
 };

@@ -20,9 +20,9 @@
 #include <libkmod.h>
 #include <util/log.h>
 #include <util/sysfs.h>
+#include <util/kernel.h>
 #include <linux/version.h>
 
-#include <ccan/array_size/array_size.h>
 #include <ndctl/libndctl.h>
 #ifdef HAVE_NDCTL_H
 #include <linux/ndctl.h>

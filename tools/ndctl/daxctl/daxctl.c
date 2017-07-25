@@ -21,9 +21,9 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <util/kernel.h>
 #include <daxctl/libdaxctl.h>
 #include <util/parse-options.h>
-#include <ccan/array_size/array_size.h>
 
 #include <util/strbuf.h>
 #include <util/util.h>

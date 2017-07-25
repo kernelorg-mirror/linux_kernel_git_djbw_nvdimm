@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <util/log.h>
+#include <util/kernel.h>
 #include <ndctl/libndctl.h>
 #include "libndctl-private.h"
 
@@ -76,7 +77,7 @@ static struct ndctl_cmd *intel_dimm_cmd_new_smart(struct ndctl_dimm *dimm)
 	struct ndctl_cmd *cmd;
 	size_t size;
 
-	BUILD_ASSERT(sizeof(struct nd_smart_payload) == 128);
+	(void) BUILD_BUG_ON_ZERO(sizeof(struct nd_smart_payload) != 128);
 
 	if (!ndctl_dimm_is_cmd_supported(dimm, ND_CMD_SMART)) {
 		dbg(ctx, "unsupported cmd\n");
@@ -165,7 +166,7 @@ static struct ndctl_cmd *intel_dimm_cmd_new_smart_threshold(
 	struct ndctl_cmd *cmd;
 	size_t size;
 
-	BUILD_ASSERT(sizeof(struct nd_smart_threshold_payload) == 8);
+	(void) BUILD_BUG_ON_ZERO(sizeof(struct nd_smart_threshold_payload) != 8);
 
 	if (!ndctl_dimm_is_cmd_supported(dimm, ND_CMD_SMART_THRESHOLD)) {
 		dbg(ctx, "unsupported cmd\n");

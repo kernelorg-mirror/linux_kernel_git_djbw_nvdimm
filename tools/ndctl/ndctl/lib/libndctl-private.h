@@ -21,15 +21,15 @@
 #include <libkmod.h>
 #include <util/log.h>
 #include <uuid/uuid.h>
-#include <ccan/list/list.h>
-#include <ccan/array_size/array_size.h>
+#include <util/kernel.h>
+#include <util/list.h>
+#include <ccan/endian/endian.h>
 #ifdef HAVE_NDCTL_H
 #include <linux/ndctl.h>
 #else
 #include <ndctl.h>
 #endif
 #include <ndctl/libndctl.h>
-#include <ccan/endian/endian.h>
 #include <ccan/short_types/short_types.h>
 #include "ndctl-hpe1.h"
 #include "ndctl-msft.h"

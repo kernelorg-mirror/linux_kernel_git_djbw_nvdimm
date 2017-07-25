@@ -23,11 +23,10 @@
 #include <util/size.h>
 #include <util/json.h>
 #include <json-c/json.h>
+#include <util/kernel.h>
 #include <util/filter.h>
 #include <ndctl/libndctl.h>
 #include <util/parse-options.h>
-#include <ccan/minmax/minmax.h>
-#include <ccan/array_size/array_size.h>
 #include "check.h"
 
 #ifdef HAVE_NDCTL_H

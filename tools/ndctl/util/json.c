@@ -14,12 +14,12 @@
 #include <string.h>
 #include <util/json.h>
 #include <util/filter.h>
+#include <util/kernel.h>
 #include <uuid/uuid.h>
 #include <json-c/json.h>
 #include <json-c/printbuf.h>
 #include <ndctl/libndctl.h>
 #include <daxctl/libdaxctl.h>
-#include <ccan/array_size/array_size.h>
 
 #ifdef HAVE_NDCTL_H
 #include <linux/ndctl.h>

@@ -48,18 +48,15 @@ libccan_a_SOURCES = \
 	ccan/str/str_debug.h \
 	ccan/str/str.c \
 	ccan/str/debug.c \
-	ccan/list/list.h \
-	ccan/list/list.c \
 	ccan/container_of/container_of.h \
 	ccan/check_type/check_type.h \
 	ccan/build_assert/build_assert.h \
-	ccan/array_size/array_size.h \
-	ccan/minmax/minmax.h \
 	ccan/short_types/short_types.h \
 	ccan/endian/endian.h
 
 noinst_LIBRARIES += libutil.a
 libutil_a_SOURCES = \
+	../lib/find_bit.c \
 	util/parse-options.c \
 	util/parse-options.h \
 	util/usage.c \
@@ -69,7 +66,6 @@ libutil_a_SOURCES = \
 	util/strbuf.c \
 	util/wrapper.c \
 	util/filter.c \
-	util/fletcher.c\
-	util/bitmap.c
+	util/fletcher.c
 
 nobase_include_HEADERS = daxctl/libdaxctl.h

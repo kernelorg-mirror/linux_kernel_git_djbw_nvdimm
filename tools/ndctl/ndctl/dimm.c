@@ -22,13 +22,15 @@
 #include <util/json.h>
 #include <util/filter.h>
 #include <json-c/json.h>
+#include <util/kernel.h>
 #include <util/fletcher.h>
 #include <ndctl/libndctl.h>
 #include <util/parse-options.h>
-#include <ccan/minmax/minmax.h>
 #include <ccan/short_types/short_types.h>
+
 #include <ccan/endian/endian.h>
-#include <ccan/array_size/array_size.h>
+#define cpu_to_le64 cpu_to_le64
+#include <linux/bitmap.h>
 
 enum {
 	NSINDEX_SIG_LEN = 16,
@@ -176,7 +178,7 @@ static struct json_object *dump_label_json(struct ndctl_cmd *cmd_read, ssize_t s
 
 	for (offset = NSINDEX_ALIGN * 2; offset < size;
 			offset += sizeof_namespace_label(ndd)) {
-		ssize_t len = min_t(ssize_t, sizeof_namespace_label(ndd),
+		ssize_t len = min((ssize_t) sizeof_namespace_label(ndd),
 				size - offset);
 		struct json_object *jobj;
 		char uuid[40];
@@ -282,7 +284,7 @@ static struct json_object *dump_index_json(struct ndctl_cmd *cmd_read, ssize_t s
 		return NULL;
 
 	for (offset = 0; offset < NSINDEX_ALIGN * 2; offset += NSINDEX_ALIGN) {
-		ssize_t len = min_t(ssize_t, sizeof(nsindex), size - offset);
+		ssize_t len = min((ssize_t) sizeof(nsindex), size - offset);
 		struct json_object *jobj;
 
 		jindex = json_object_new_object();
@@ -379,7 +381,7 @@ static int rw_bin(FILE *f, struct ndctl_cmd *cmd, ssize_t size, int rw)
 	ssize_t offset, write = 0;
 
 	for (offset = 0; offset < size; offset += sizeof(buf)) {
-		ssize_t len = min_t(ssize_t, sizeof(buf), size - offset), rc;
+		ssize_t len = min((ssize_t) sizeof(buf), size - offset), rc;
 
 		if (rw) {
 			len = fread(buf, 1, len, f);

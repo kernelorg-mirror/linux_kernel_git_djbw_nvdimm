@@ -24,11 +24,11 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <util/size.h>
+#include <util/kernel.h>
 #include <linux/falloc.h>
 #include <linux/version.h>
 #include <ndctl/libndctl.h>
 #include <daxctl/libdaxctl.h>
-#include <ccan/array_size/array_size.h>
 
 #include <builtin.h>
 #include <test.h>

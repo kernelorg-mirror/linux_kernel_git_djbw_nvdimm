@@ -23,9 +23,9 @@
 #include <sys/types.h>
 #include <builtin.h>
 #include <ndctl/libndctl.h>
-#include <ccan/array_size/array_size.h>
 
 #include <util/parse-options.h>
+#include <util/kernel.h>
 #include <util/strbuf.h>
 #include <util/util.h>
 #include <util/main.h>

@@ -19,11 +19,11 @@
 #include <sys/types.h>
 #include <sys/sysmacros.h>
 #include <uuid/uuid.h>
-#include <ccan/list/list.h>
-#include <ccan/array_size/array_size.h>
 
 #include <util/log.h>
+#include <util/list.h>
 #include <util/sysfs.h>
+#include <util/kernel.h>
 #include <daxctl/libdaxctl.h>
 #include "libdaxctl-private.h"
 
@@ -93,7 +93,7 @@ DAXCTL_EXPORT int daxctl_new(struct daxctl_ctx **ctx)
 	info(c, "ctx %p created\n", c);
 	dbg(c, "log_priority=%d\n", c->ctx.log_priority);
 	*ctx = c;
-	list_head_init(&c->regions);
+	INIT_LIST_HEAD(&c->regions);
 
 	return 0;
 }
@@ -190,7 +190,7 @@ static void free_region(struct daxctl_region *region, struct list_head *head)
 {
 	struct daxctl_dev *dev, *_d;
 
-	list_for_each_safe(&region->devices, dev, _d, list)
+	list_for_each_entry_safe(dev, _d, &region->devices, list)
 		free_dev(dev, &region->devices);
 	if (head)
 		list_del_from(head, &region->list);
@@ -248,7 +248,7 @@ static struct daxctl_region *add_dax_region(void *parent, int id,
 	region->size = -1;
 	region->ctx = ctx;
 	region->refcount = 1;
-	list_head_init(&region->devices);
+	INIT_LIST_HEAD(&region->devices);
 	region->devname = strdup(devpath_to_devname(base));
 
 	sprintf(path, "%s/%s/size", base, attrs);
@@ -269,7 +269,7 @@ static struct daxctl_region *add_dax_region(void *parent, int id,
 		goto err_read;
 	region->buf_len = strlen(path) + REGION_BUF_SIZE;
 
-	list_add(&ctx->regions, &region->list);
+	list_add(&region->list, &ctx->regions);
 
 	free(path);
 	return region;
@@ -345,7 +345,7 @@ static void *add_dax_dev(void *parent, int id, const char *daxdev_base)
 			return dev_dup;
 		}
 
-	list_add(&region->devices, &dev->list);
+	list_add(&dev->list, &region->devices);
 	free(path);
 	return dev;
 
@@ -525,7 +525,8 @@ DAXCTL_EXPORT struct daxctl_dev *daxctl_dev_get_first(struct daxctl_region *regi
 {
 	dax_devices_init(region);
 
-	return list_top(&region->devices, struct daxctl_dev, list);
+	return list_first_entry_or_null(&region->devices, struct daxctl_dev,
+			list);
 }
 
 DAXCTL_EXPORT struct daxctl_dev *daxctl_dev_get_next(struct daxctl_dev *dev)
@@ -540,7 +541,8 @@ DAXCTL_EXPORT struct daxctl_region *daxctl_region_get_first(
 {
 	dax_regions_init(ctx);
 
-	return list_top(&ctx->regions, struct daxctl_region, list);
+	return list_first_entry_or_null(&ctx->regions, struct daxctl_region,
+			list);
 }
 
 DAXCTL_EXPORT struct daxctl_region *daxctl_region_get_next(

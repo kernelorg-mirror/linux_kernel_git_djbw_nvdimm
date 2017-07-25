@@ -27,14 +27,14 @@
 #include <util/json.h>
 #include <util/size.h>
 #include <util/util.h>
-#include <util/bitmap.h>
+#include <util/kernel.h>
 #include <util/fletcher.h>
 #include <ndctl/libndctl.h>
-#include <ccan/endian/endian.h>
-#include <ccan/minmax/minmax.h>
-#include <ccan/array_size/array_size.h>
 #include <ccan/short_types/short_types.h>
 #include "check.h"
+
+#include <ccan/endian/endian.h>
+#include <linux/bitmap.h>
 
 #ifdef HAVE_NDCTL_H
 #include <linux/ndctl.h>
@@ -143,7 +143,7 @@ static int btt_copy_to_info2(struct arena_info *a)
 	memcpy(a->map.info2, a->map.info, BTT_INFO_SIZE);
 
 	ms_align = (void *)rounddown((u64)a->map.info2, a->bttc->sys_page_size);
-	ms_size = max(BTT_INFO_SIZE, a->bttc->sys_page_size);
+	ms_size = max((long) BTT_INFO_SIZE, a->bttc->sys_page_size);
 	if (msync(ms_align, ms_size, MS_SYNC) < 0)
 		return errno;
 
@@ -250,7 +250,7 @@ static int btt_checksum_verify(struct btt_sb *btt_sb)
 	uint64_t sum;
 	le64 sum_save;
 
-	BUILD_BUG_ON(sizeof(struct btt_sb) != SZ_4K);
+	(void) BUILD_BUG_ON_ZERO(sizeof(struct btt_sb) != SZ_4K);
 
 	sum_save = btt_sb->checksum;
 	btt_sb->checksum = 0;
@@ -482,7 +482,7 @@ static int btt_check_bitmap(struct arena_info *a)
 			rc = BTT_BITMAP_ERROR;
 			goto out;
 		}
-		bitmap_set(bm, btt_mapping, 1);
+		set_bit(btt_mapping, bm);
 	}
 
 	/* map 'nfree' number of flog entries */
@@ -499,7 +499,7 @@ static int btt_check_bitmap(struct arena_info *a)
 			rc = BTT_BITMAP_ERROR;
 			goto out;
 		}
-		bitmap_set(bm, log.old_map, 1);
+		set_bit(log.old_map, bm);
 	}
 
 	/* check that the bitmap is full */

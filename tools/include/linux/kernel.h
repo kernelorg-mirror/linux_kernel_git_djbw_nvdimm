@@ -45,6 +45,10 @@
 	_min1 < _min2 ? _min1 : _min2; })
 #endif
 
+#ifndef clamp
+#define clamp(v, f, c) (max(min((v), (c)), (f)))
+#endif
+
 #ifndef roundup
 #define roundup(x, y) (                                \
 {                                                      \
@@ -52,6 +56,10 @@
 	(((x) + (__y - 1)) / __y) * __y;	       \
 }                                                      \
 )
+#endif
+
+#ifndef ARRAY_SIZE
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 #endif
 
 #ifndef BUG_ON
@@ -66,8 +74,10 @@
  * Both need more care to handle endianness
  * (Don't use bitmap_copy_le() for now)
  */
+#ifndef cpu_to_le64
 #define cpu_to_le64(x)	(x)
 #define cpu_to_le32(x)	(x)
+#endif
 
 int vscnprintf(char *buf, size_t size, const char *fmt, va_list args);
 int scnprintf(char * buf, size_t size, const char * fmt, ...);

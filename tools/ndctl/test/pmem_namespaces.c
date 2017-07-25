@@ -26,10 +26,9 @@
 #include <unistd.h>
 #include <uuid/uuid.h>
 #include <libkmod.h>
+#include <util/kernel.h>
 #include <linux/version.h>
 #include <test.h>
-
-#include <ccan/array_size/array_size.h>
 
 #ifdef HAVE_NDCTL_H
 #include <linux/ndctl.h>

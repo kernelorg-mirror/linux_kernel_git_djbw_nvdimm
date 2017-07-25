@@ -30,7 +30,7 @@
 
 #include <util/log.h>
 #include <util/sysfs.h>
-#include <ccan/array_size/array_size.h>
+#include <util/kernel.h>
 #include <ndctl/libndctl.h>
 #include <daxctl/libdaxctl.h>
 #ifdef HAVE_NDCTL_H

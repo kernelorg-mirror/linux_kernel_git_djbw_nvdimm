@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
+#include <util/kernel.h>
 #include <syslog.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -28,7 +29,6 @@
 #include <linux/version.h>
 #include <test.h>
 #include <libkmod.h>
-#include <ccan/array_size/array_size.h>
 
 #ifdef HAVE_NDCTL_H
 #include <linux/ndctl.h>
