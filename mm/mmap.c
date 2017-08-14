@@ -1464,7 +1464,7 @@ unsigned long do_mmap(struct file *file, unsigned long addr,
 			vm_flags |= VM_NORESERVE;
 	}
 
-	addr = mmap_region(file, addr, len, vm_flags, pgoff, uf);
+	addr = mmap_region(file, addr, len, vm_flags, pgoff, uf, flags);
 	if (!IS_ERR_VALUE(addr) &&
 	    ((vm_flags & VM_LOCKED) ||
 	     (flags & (MAP_POPULATE | MAP_NONBLOCK)) == MAP_POPULATE))
@@ -1519,6 +1519,32 @@ out_fput:
 	if (file)
 		fput(file);
 	return retval;
+}
+
+SYSCALL_DEFINE6(mmap_pgoff_strict, unsigned long, addr, unsigned long, len,
+		unsigned long, prot, unsigned long, flags,
+		unsigned long, fd, unsigned long, pgoff)
+{
+	if (flags & ~(MAP_SUPPORTED_MASK))
+		return -EOPNOTSUPP;
+
+	if (!(flags & MAP_ANONYMOUS)) {
+		unsigned long f_supported;
+		struct file *file;
+
+		audit_mmap_fd(fd, flags);
+		file = fget(fd);
+		if (!file)
+			return -EBADF;
+		f_supported = file->f_op->mmap_supported_mask;
+		fput(file);
+		if (!f_supported)
+			f_supported = LEGACY_MAP_SUPPORTED_MASK;
+		if (flags & ~f_supported)
+			return -EOPNOTSUPP;
+	}
+
+	return sys_mmap_pgoff(addr, len, prot, flags, fd, pgoff);
 }
 
 #ifdef __ARCH_WANT_SYS_OLD_MMAP
@@ -1601,7 +1627,7 @@ static inline int accountable_mapping(struct file *file, vm_flags_t vm_flags)
 
 unsigned long mmap_region(struct file *file, unsigned long addr,
 		unsigned long len, vm_flags_t vm_flags, unsigned long pgoff,
-		struct list_head *uf)
+		struct list_head *uf, unsigned long flags)
 {
 	struct mm_struct *mm = current->mm;
 	struct vm_area_struct *vma, *prev;
@@ -1686,7 +1712,7 @@ unsigned long mmap_region(struct file *file, unsigned long addr,
 		 * new file must not have been exposed to user-space, yet.
 		 */
 		vma->vm_file = get_file(file);
-		error = call_mmap(file, vma, 0);
+		error = call_mmap(file, vma, flags);
 		if (error)
 			goto unmap_and_free_vma;
 

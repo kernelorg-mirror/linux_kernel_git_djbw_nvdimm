@@ -1674,6 +1674,7 @@ struct file_operations {
 	long (*unlocked_ioctl) (struct file *, unsigned int, unsigned long);
 	long (*compat_ioctl) (struct file *, unsigned int, unsigned long);
 	int (*mmap) (struct file *, struct vm_area_struct *, unsigned long);
+	unsigned long mmap_supported_mask;
 	int (*open) (struct inode *, struct file *);
 	int (*flush) (struct file *, fl_owner_t id);
 	int (*release) (struct inode *, struct file *);
@@ -1746,7 +1747,7 @@ static inline ssize_t call_write_iter(struct file *file, struct kiocb *kio,
 static inline int call_mmap(struct file *file, struct vm_area_struct *vma,
 			    unsigned long flags)
 {
-	return file->f_op->mmap(file, vma, 0);
+	return file->f_op->mmap(file, vma, flags);
 }
 
 ssize_t rw_copy_check_uvector(int type, const struct iovec __user * uvector,
