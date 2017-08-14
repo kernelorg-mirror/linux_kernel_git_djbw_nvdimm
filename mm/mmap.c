@@ -1393,6 +1393,17 @@ unsigned long do_mmap(struct file *file, unsigned long addr,
 				return -EACCES;
 
 			/*
+			 * Require write access and the immutable
+			 * capability for MAP_DIRECT mappings
+			 */
+			if (flags & MAP_DIRECT) {
+				if (!(prot & PROT_WRITE))
+					return -EACCES;
+				if (!capable(CAP_LINUX_IMMUTABLE))
+					return -EACCES;
+			}
+
+			/*
 			 * Make sure we don't allow writing to an append-only
 			 * file..
 			 */
@@ -1411,6 +1422,9 @@ unsigned long do_mmap(struct file *file, unsigned long addr,
 
 			/* fall through */
 		case MAP_PRIVATE:
+			if ((flags & (MAP_PRIVATE|MAP_DIRECT))
+					== (MAP_PRIVATE|MAP_DIRECT))
+				return -EINVAL;
 			if (!(file->f_mode & FMODE_READ))
 				return -EACCES;
 			if (path_noexec(&file->f_path)) {
@@ -1448,6 +1462,9 @@ unsigned long do_mmap(struct file *file, unsigned long addr,
 		default:
 			return -EINVAL;
 		}
+
+		if (flags & MAP_DIRECT)
+			return -EINVAL;
 	}
 
 	/*
@@ -1525,6 +1542,12 @@ SYSCALL_DEFINE6(mmap_pgoff_strict, unsigned long, addr, unsigned long, len,
 		unsigned long, prot, unsigned long, flags,
 		unsigned long, fd, unsigned long, pgoff)
 {
+	/*
+	 * since mmap flag definitions are spread over several files,
+	 * sanity check new definitions here.
+	 */
+	BUILD_BUG_ON((MAP_DIRECT & ~LEGACY_MAP_SUPPORTED_MASK) != MAP_DIRECT);
+
 	if (flags & ~(MAP_SUPPORTED_MASK))
 		return -EOPNOTSUPP;
 

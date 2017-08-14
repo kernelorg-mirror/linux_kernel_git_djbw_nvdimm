@@ -16,6 +16,9 @@
 #ifndef MAP_HUGE_1GB
 #define MAP_HUGE_1GB 0
 #endif
+#ifndef MAP_DIRECT
+#define MAP_DIRECT 0
+#endif
 #ifndef MAP_UNINITIALIZED
 #define MAP_UNINITIALIZED 0
 #endif
@@ -42,7 +45,8 @@
 		| MAP_HUGE_2MB \
 		| MAP_HUGE_1GB)
 
-#define	MAP_SUPPORTED_MASK (LEGACY_MAP_SUPPORTED_MASK)
+#define	MAP_SUPPORTED_MASK (LEGACY_MAP_SUPPORTED_MASK \
+		| MAP_DIRECT)
 
 extern int sysctl_overcommit_memory;
 extern int sysctl_overcommit_ratio;
