@@ -906,7 +906,8 @@ static int relay_file_open(struct inode *inode, struct file *filp)
  *
  *	Calls upon relay_mmap_buf() to map the file into user space.
  */
-static int relay_file_mmap(struct file *filp, struct vm_area_struct *vma)
+static int relay_file_mmap(struct file *filp, struct vm_area_struct *vma,
+			   unsigned long map_flags)
 {
 	struct rchan_buf *buf = filp->private_data;
 	return relay_mmap_buf(buf, vma);

@@ -956,7 +956,8 @@ EXPORT_SYMBOL(drm_gem_mmap_obj);
  * If the caller is not granted access to the buffer object, the mmap will fail
  * with EACCES. Please see the vma manager for more information.
  */
-int drm_gem_mmap(struct file *filp, struct vm_area_struct *vma)
+int drm_gem_mmap(struct file *filp, struct vm_area_struct *vma,
+		unsigned long map_flags)
 {
 	struct drm_file *priv = filp->private_data;
 	struct drm_device *dev = priv->minor->dev;

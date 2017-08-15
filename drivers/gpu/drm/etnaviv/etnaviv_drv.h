@@ -72,7 +72,8 @@ static inline void etnaviv_queue_work(struct drm_device *dev,
 int etnaviv_ioctl_gem_submit(struct drm_device *dev, void *data,
 		struct drm_file *file);
 
-int etnaviv_gem_mmap(struct file *filp, struct vm_area_struct *vma);
+int etnaviv_gem_mmap(struct file *filp, struct vm_area_struct *vma,
+		     unsigned long map_flags);
 int etnaviv_gem_fault(struct vm_fault *vmf);
 int etnaviv_gem_mmap_offset(struct drm_gem_object *obj, u64 *offset);
 struct sg_table *etnaviv_gem_prime_get_sg_table(struct drm_gem_object *obj);

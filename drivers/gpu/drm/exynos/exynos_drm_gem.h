@@ -119,7 +119,8 @@ int exynos_drm_gem_dumb_map_offset(struct drm_file *file_priv,
 int exynos_drm_gem_fault(struct vm_fault *vmf);
 
 /* set vm_flags and we can change the vm attribute to other one at here. */
-int exynos_drm_gem_mmap(struct file *filp, struct vm_area_struct *vma);
+int exynos_drm_gem_mmap(struct file *filp, struct vm_area_struct *vma,
+			unsigned long map_flags);
 
 /* low-level interface prime helpers */
 struct sg_table *exynos_drm_gem_prime_get_sg_table(struct drm_gem_object *obj);

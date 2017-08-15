@@ -81,7 +81,9 @@ static int dma_buf_release(struct inode *inode, struct file *file)
 	return 0;
 }
 
-static int dma_buf_mmap_internal(struct file *file, struct vm_area_struct *vma)
+static int dma_buf_mmap_internal(struct file *file,
+				 struct vm_area_struct *vma,
+				 unsigned long map_flags)
 {
 	struct dma_buf *dmabuf;
 

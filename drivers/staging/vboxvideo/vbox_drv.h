@@ -261,7 +261,8 @@ static inline void vbox_bo_unreserve(struct vbox_bo *bo)
 
 void vbox_ttm_placement(struct vbox_bo *bo, int domain);
 int vbox_bo_push_sysram(struct vbox_bo *bo);
-int vbox_mmap(struct file *filp, struct vm_area_struct *vma);
+int vbox_mmap(struct file *filp, struct vm_area_struct *vma,
+	      unsigned long map_flags);
 
 /* vbox_prime.c */
 int vbox_gem_prime_pin(struct drm_gem_object *obj);

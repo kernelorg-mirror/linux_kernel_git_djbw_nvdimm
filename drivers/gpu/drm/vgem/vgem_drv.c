@@ -248,12 +248,13 @@ static struct drm_ioctl_desc vgem_ioctls[] = {
 	DRM_IOCTL_DEF_DRV(VGEM_FENCE_SIGNAL, vgem_fence_signal_ioctl, DRM_AUTH|DRM_RENDER_ALLOW),
 };
 
-static int vgem_mmap(struct file *filp, struct vm_area_struct *vma)
+static int vgem_mmap(struct file *filp, struct vm_area_struct *vma,
+		     unsigned long map_flags)
 {
 	unsigned long flags = vma->vm_flags;
 	int ret;
 
-	ret = drm_gem_mmap(filp, vma);
+	ret = drm_gem_mmap(filp, vma, 0);
 	if (ret)
 		return ret;
 
@@ -370,7 +371,7 @@ static int vgem_prime_mmap(struct drm_gem_object *obj,
 	if (!obj->filp)
 		return -ENODEV;
 
-	ret = call_mmap(obj->filp, vma);
+	ret = call_mmap(obj->filp, vma, 0);
 	if (ret)
 		return ret;
 

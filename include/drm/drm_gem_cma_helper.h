@@ -79,7 +79,8 @@ int drm_gem_cma_dumb_map_offset(struct drm_file *file_priv,
 				u64 *offset);
 
 /* set vm_flags and we can change the VM attribute to other one at here */
-int drm_gem_cma_mmap(struct file *filp, struct vm_area_struct *vma);
+int drm_gem_cma_mmap(struct file *filp, struct vm_area_struct *vma,
+		unsigned long map_flags);
 
 /* allocate physical memory */
 struct drm_gem_cma_object *drm_gem_cma_create(struct drm_device *drm,

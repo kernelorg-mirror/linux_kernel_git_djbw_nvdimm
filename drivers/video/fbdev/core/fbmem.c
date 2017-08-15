@@ -1380,7 +1380,8 @@ static long fb_compat_ioctl(struct file *file, unsigned int cmd,
 #endif
 
 static int
-fb_mmap(struct file *file, struct vm_area_struct * vma)
+fb_mmap(struct file *file, struct vm_area_struct *vma,
+	unsigned long map_flags)
 {
 	struct fb_info *info = file_fb_info(file);
 	struct fb_ops *fb;

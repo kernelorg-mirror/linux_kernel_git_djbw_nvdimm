@@ -481,13 +481,14 @@ const struct vm_operations_struct tegra_bo_vm_ops = {
 	.close = drm_gem_vm_close,
 };
 
-int tegra_drm_mmap(struct file *file, struct vm_area_struct *vma)
+int tegra_drm_mmap(struct file *file, struct vm_area_struct *vma,
+		   unsigned long map_flags)
 {
 	struct drm_gem_object *gem;
 	struct tegra_bo *bo;
 	int ret;
 
-	ret = drm_gem_mmap(file, vma);
+	ret = drm_gem_mmap(file, vma, 0);
 	if (ret)
 		return ret;
 

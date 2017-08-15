@@ -421,7 +421,8 @@ int qxl_mode_dumb_mmap(struct drm_file *filp,
 /* qxl ttm */
 int qxl_ttm_init(struct qxl_device *qdev);
 void qxl_ttm_fini(struct qxl_device *qdev);
-int qxl_mmap(struct file *filp, struct vm_area_struct *vma);
+int qxl_mmap(struct file *filp, struct vm_area_struct *vma,
+	     unsigned long map_flags);
 
 /* qxl image */
 

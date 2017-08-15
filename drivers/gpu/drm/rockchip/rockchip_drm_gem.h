@@ -42,7 +42,8 @@ void *rockchip_gem_prime_vmap(struct drm_gem_object *obj);
 void rockchip_gem_prime_vunmap(struct drm_gem_object *obj, void *vaddr);
 
 /* drm driver mmap file operations */
-int rockchip_gem_mmap(struct file *filp, struct vm_area_struct *vma);
+int rockchip_gem_mmap(struct file *filp, struct vm_area_struct *vma,
+		      unsigned long map_flags);
 
 /* mmap a gem object to userspace. */
 int rockchip_gem_mmap_buf(struct drm_gem_object *obj,

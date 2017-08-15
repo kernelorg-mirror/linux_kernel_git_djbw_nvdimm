@@ -478,7 +478,8 @@ int vc4_get_tiling_ioctl(struct drm_device *dev, void *data,
 			 struct drm_file *file_priv);
 int vc4_get_hang_state_ioctl(struct drm_device *dev, void *data,
 			     struct drm_file *file_priv);
-int vc4_mmap(struct file *filp, struct vm_area_struct *vma);
+int vc4_mmap(struct file *filp, struct vm_area_struct *vma,
+	     unsigned long map_flags);
 struct reservation_object *vc4_prime_res_obj(struct drm_gem_object *obj);
 int vc4_prime_mmap(struct drm_gem_object *obj, struct vm_area_struct *vma);
 struct drm_gem_object *vc4_prime_import_sg_table(struct drm_device *dev,

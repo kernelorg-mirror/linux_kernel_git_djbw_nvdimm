@@ -190,12 +190,13 @@ int mtk_drm_gem_mmap_buf(struct drm_gem_object *obj, struct vm_area_struct *vma)
 	return mtk_drm_gem_object_mmap(obj, vma);
 }
 
-int mtk_drm_gem_mmap(struct file *filp, struct vm_area_struct *vma)
+int mtk_drm_gem_mmap(struct file *filp, struct vm_area_struct *vma,
+		     unsigned long map_flags)
 {
 	struct drm_gem_object *obj;
 	int ret;
 
-	ret = drm_gem_mmap(filp, vma);
+	ret = drm_gem_mmap(filp, vma, 0);
 	if (ret)
 		return ret;
 

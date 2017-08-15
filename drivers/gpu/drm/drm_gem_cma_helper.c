@@ -330,6 +330,7 @@ static int drm_gem_cma_mmap_obj(struct drm_gem_cma_object *cma_obj,
  * drm_gem_cma_mmap - memory-map a CMA GEM object
  * @filp: file object
  * @vma: VMA for the area to be mapped
+ * @map_flags: the MAP_* flags passed to mmap(2)
  *
  * This function implements an augmented version of the GEM DRM file mmap
  * operation for CMA objects: In addition to the usual GEM VMA setup it
@@ -344,13 +345,14 @@ static int drm_gem_cma_mmap_obj(struct drm_gem_cma_object *cma_obj,
  * Returns:
  * 0 on success or a negative error code on failure.
  */
-int drm_gem_cma_mmap(struct file *filp, struct vm_area_struct *vma)
+int drm_gem_cma_mmap(struct file *filp, struct vm_area_struct *vma,
+		unsigned long map_flags)
 {
 	struct drm_gem_cma_object *cma_obj;
 	struct drm_gem_object *gem_obj;
 	int ret;
 
-	ret = drm_gem_mmap(filp, vma);
+	ret = drm_gem_mmap(filp, vma, 0);
 	if (ret)
 		return ret;
 

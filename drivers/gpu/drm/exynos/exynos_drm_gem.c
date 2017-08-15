@@ -511,13 +511,14 @@ err_close_vm:
 	return ret;
 }
 
-int exynos_drm_gem_mmap(struct file *filp, struct vm_area_struct *vma)
+int exynos_drm_gem_mmap(struct file *filp, struct vm_area_struct *vma,
+			unsigned long map_flags)
 {
 	struct drm_gem_object *obj;
 	int ret;
 
 	/* set vm_area_struct. */
-	ret = drm_gem_mmap(filp, vma);
+	ret = drm_gem_mmap(filp, vma, 0);
 	if (ret < 0) {
 		DRM_ERROR("failed to mmap.\n");
 		return ret;

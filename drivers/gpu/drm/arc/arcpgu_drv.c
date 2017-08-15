@@ -48,11 +48,12 @@ static void arcpgu_setup_mode_config(struct drm_device *drm)
 	drm->mode_config.funcs = &arcpgu_drm_modecfg_funcs;
 }
 
-static int arcpgu_gem_mmap(struct file *filp, struct vm_area_struct *vma)
+static int arcpgu_gem_mmap(struct file *filp, struct vm_area_struct *vma,
+			   unsigned long map_flags)
 {
 	int ret;
 
-	ret = drm_gem_mmap(filp, vma);
+	ret = drm_gem_mmap(filp, vma, 0);
 	if (ret)
 		return ret;
 

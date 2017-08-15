@@ -70,7 +70,8 @@ int tegra_bo_dumb_create(struct drm_file *file, struct drm_device *drm,
 int tegra_bo_dumb_map_offset(struct drm_file *file, struct drm_device *drm,
 			     u32 handle, u64 *offset);
 
-int tegra_drm_mmap(struct file *file, struct vm_area_struct *vma);
+int tegra_drm_mmap(struct file *file, struct vm_area_struct *vma,
+		   unsigned long map_flags);
 
 extern const struct vm_operations_struct tegra_bo_vm_ops;
 
