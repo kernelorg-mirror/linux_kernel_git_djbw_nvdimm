@@ -855,11 +855,12 @@ struct file {
 	const struct file_operations	*f_op;
 
 	/*
-	 * Protects f_ep_links, f_flags.
+	 * Protects f_ep_links, f_flags, f_write_hint, and f_map_direct.
 	 * Must not be taken from IRQ context.
 	 */
 	spinlock_t		f_lock;
-	enum rw_hint		f_write_hint;
+	enum rw_hint		f_write_hint:3;
+	unsigned int		f_map_direct:1;
 	atomic_long_t		f_count;
 	unsigned int 		f_flags;
 	fmode_t			f_mode;

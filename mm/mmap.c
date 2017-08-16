@@ -1399,7 +1399,8 @@ unsigned long do_mmap(struct file *file, unsigned long addr,
 			if (flags & MAP_DIRECT) {
 				if (!(prot & PROT_WRITE))
 					return -EACCES;
-				if (!capable(CAP_LINUX_IMMUTABLE))
+				if (!file->f_map_direct
+						&& !capable(CAP_LINUX_IMMUTABLE))
 					return -EACCES;
 			}
 

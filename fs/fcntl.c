@@ -318,6 +318,18 @@ static long fcntl_rw_hint(struct file *file, unsigned int cmd,
 	}
 }
 
+static int fcntl_map_direct(struct file *filp)
+{
+	if (!capable(CAP_LINUX_IMMUTABLE))
+		return -EACCES;
+
+	spin_lock(&filp->f_lock);
+	filp->f_map_direct = 1;
+	spin_unlock(&filp->f_lock);
+
+	return 0;
+}
+
 static long do_fcntl(int fd, unsigned int cmd, unsigned long arg,
 		struct file *filp)
 {
@@ -424,6 +436,9 @@ static long do_fcntl(int fd, unsigned int cmd, unsigned long arg,
 	case F_GET_FILE_RW_HINT:
 	case F_SET_FILE_RW_HINT:
 		err = fcntl_rw_hint(filp, cmd, arg);
+		break;
+	case F_MAP_DIRECT:
+		err = fcntl_map_direct(filp);
 		break;
 	default:
 		break;

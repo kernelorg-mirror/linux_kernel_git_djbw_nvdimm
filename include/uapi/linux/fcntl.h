@@ -53,6 +53,11 @@
 #define F_SET_FILE_RW_HINT	(F_LINUX_SPECIFIC_BASE + 14)
 
 /*
+ * Enable MAP_DIRECT on the file without CAP_LINUX_IMMUTABLE
+ */
+#define F_MAP_DIRECT		(F_LINUX_SPECIFIC_BASE + 15)
+
+/*
  * Valid hint values for F_{GET,SET}_RW_HINT. 0 is "not set", or can be
  * used to clear any hints previously set.
  */
