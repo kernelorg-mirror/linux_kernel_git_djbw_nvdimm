@@ -247,6 +247,7 @@ GLOBAL(entry_SYSCALL_64_after_hwframe)
 	TRACE_IRQS_OFF
 
 	/* IRQs are off. */
+	CLEAR_EXTRA_REGS_NOSPEC
 	movq	%rsp, %rdi
 	call	do_syscall_64		/* returns with IRQs disabled */
 

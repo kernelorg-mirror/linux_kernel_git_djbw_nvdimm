@@ -147,6 +147,23 @@ For 32-bit we have the following conventions - kernel is built with
 	UNWIND_HINT_REGS offset=\offset
 	.endm
 
+	/*
+	 * Sanitize extra registers of values that a speculation attack
+	 * might want to exploit. In the CONFIG_FRAME_POINTER=y case,
+	 * the expectation is that %ebp will be clobbered before it
+	 * could be used.
+	 */
+	.macro CLEAR_EXTRA_REGS_NOSPEC
+	xorq %r15, %r15
+	xorq %r14, %r14
+	xorq %r13, %r13
+	xorq %r12, %r12
+	xorl %ebx, %ebx
+#ifndef CONFIG_FRAME_POINTER
+	xorl %ebp, %ebp
+#endif
+	.endm
+
 	.macro POP_EXTRA_REGS
 	popq %r15
 	popq %r14
