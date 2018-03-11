@@ -439,7 +439,7 @@ fail:
 	return ERR_PTR(err);
 }
 
-inline int nova_insert_inodetree(struct nova_sb_info *sbi,
+int nova_insert_inodetree(struct nova_sb_info *sbi,
 	struct nova_range_node *new_node, int cpu)
 {
 	struct rb_root *tree;
